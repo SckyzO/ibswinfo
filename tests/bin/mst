@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-DUMP_FILE="${MOCK_DUMP_FILE:-$(dirname "${BASH_SOURCE[0]}")/../mocks/ibsw_dump_4.33.0_MQM9790.txt}"
+DUMP_FILE="${MOCK_DUMP_FILE:-$(dirname "${BASH_SOURCE[0]}")/../dumps/ibsw_dump_4.33.0_MQM9790.txt}"
 
 if [[ ! -f "$DUMP_FILE" ]]; then
     # Try to resolve relative path if executed from root
-    if [[ -f "tests/mocks/$(basename "$DUMP_FILE")" ]]; then
-         DUMP_FILE="tests/mocks/$(basename "$DUMP_FILE")"
+    if [[ -f "tests/dumps/$(basename "$DUMP_FILE")" ]]; then
+         DUMP_FILE="tests/dumps/$(basename "$DUMP_FILE")"
     else
          echo "ERROR: Dump file not found: $DUMP_FILE" >&2
          exit 1

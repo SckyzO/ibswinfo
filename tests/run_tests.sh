@@ -91,7 +91,7 @@ global_status=0
 echo "=== Running Multi-Version Tests ==="
 
 count=0
-for dump in "$REPO_DIR"/tests/mocks/ibsw_dump_*.txt; do
+for dump in "$REPO_DIR"/tests/dumps/ibsw_dump_*.txt; do
     if [[ -f "$dump" ]]; then
         run_tests_for_dump "$dump"
         if [[ $? -ne 0 ]]; then
@@ -102,7 +102,7 @@ for dump in "$REPO_DIR"/tests/mocks/ibsw_dump_*.txt; do
 done
 
 if [[ $count -eq 0 ]]; then
-    echo "No dump files found in tests/mocks/"
+    echo "No dump files found in tests/dumps/"
     exit 1
 fi
 

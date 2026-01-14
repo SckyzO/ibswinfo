@@ -296,5 +296,17 @@ Switch  : 0xXXXXXXXXXXXXXXXc ports 37 "switch3 in rack1 U5" base port 0 lid 3 lm
 Switch  : 0xXXXXXXXXXXXXXXXd ports 37 "switch4 in rack1 U7" base port 0 lid 4 lmc 0
 ```
 
+## Contributing
+
+Contributions are welcome! If you have access to a different switch model or MFT version, please help us verify compatibility by providing a register dump.
+
+1.  Copy `tests/generate_dump.sh` to a machine with access to the switch.
+2.  Run the script: `./generate_dump.sh` (it will ask for the device path).
+3.  Rename the generated file to `ibsw_dump_<MFT_VER>_<MODEL>.txt`.
+4.  Submit a Pull Request adding this file to `tests/dumps/`.
+
+This allows us to run regression tests against real hardware data without needing physical access to every switch model.
+
+
 
 
