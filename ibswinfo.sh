@@ -180,7 +180,7 @@ EOU
 }
 
 # defaults
-outputs="inventory|vitals|status"
+outputs="inventory|vitals|status|json"
 out=""
 dev=""
 desc=""

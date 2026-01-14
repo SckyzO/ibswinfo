@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
-# Test runner pour ibswinfo
+# Test runner for ibswinfo
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="$REPO_DIR/tests/bin:$PATH"
 
-# On utilise un LID pour éviter les vérifications de fichiers /dev/mst
-# Le dump correspond au LID 0x16 = 22
+# We use a LID to avoid /dev/mst file checks
+# The dump corresponds to LID 0x16 = 22
 DEVICE="lid-22"
 
 echo "=== Running Tests with Real Data Dump ==="
 echo "Using Mock Device: $DEVICE"
 
-# Test de la version
+# Test version
 echo -n "Testing version... "
 OUTPUT=$("$REPO_DIR/ibswinfo.sh" -v)
 if [[ "$OUTPUT" == *"version 0.7"* ]]; then
@@ -21,10 +21,10 @@ else
     exit 1
 fi
 
-# Test de l'inventaire (lecture réelle du dump)
+# Test inventory gathering (real dump reading)
 echo -n "Testing inventory gathering... "
 
-# Capture stdout et stderr dans des fichiers temporaires
+# Capture stdout and stderr in temporary files
 STDOUT_FILE=$(mktemp)
 STDERR_FILE=$(mktemp)
 
@@ -35,7 +35,7 @@ ERR_OUTPUT=$(cat "$STDERR_FILE")
 
 rm "$STDOUT_FILE" "$STDERR_FILE"
 
-# Vérifications basées sur le contenu de ibsw_dump.txt
+# Verification based on ibsw_dump.txt content
 # PN: MQM9790-NS2F
 if [[ "$OUTPUT" == *"MQM9790-NS2F"* ]]; then
      echo "OK"

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Mock pour mst
+# Mock for mst
 if [[ "$1" == "version" ]]; then
-    # Version extraite du dump
+    # Version extracted from dump
     echo "mst, mft 4.33.0-169, built on Jul 24 2025, 16:49:29. Git SHA Hash: N/A"
     exit 0
-fi
+}
 
 if [[ "$1" == "status" ]]; then
     echo "MST modules:"
@@ -15,7 +15,7 @@ if [[ "$1" == "status" ]]; then
     echo ""
     echo "MST devices:"
     echo "------------"
-    # Device extrait du dump
+    # Device extracted from dump
     echo "/dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016"
     exit 0
 fi

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# Mock intelligent pour mlxreg_ext
-# Il lit tests/mocks/ibsw_dump.txt et extrait la réponse correspondante.
+# Intelligent mock for mlxreg_ext
+# It reads tests/mocks/ibsw_dump.txt and extracts the corresponding response.
 
 DUMP_FILE="$(dirname "${BASH_SOURCE[0]}")/../mocks/ibsw_dump.txt"
 
-# Reconstruire la commande appelée pour trouver le bloc correspondant
-# On cherche --reg_name et les flags --get/--show_reg/--indexes
+# Reconstruct the called command to find the corresponding block
+# We look for --reg_name and flags --get/--show_reg/--indexes
 REG_NAME=""
 INDEXES=""
 SHOW_REG=""
@@ -31,8 +31,9 @@ elif [[ -n "$REG_NAME" ]]; then
     [[ -n "$INDEXES" ]] && SEARCH_PATTERN="$SEARCH_PATTERN --indexes $INDEXES"
 fi
 
-# Extraction du bloc correspondant avec awk
-# On veut le contenu entre le bloc de séparation suivant la commande et le prochain bloc de séparation ou une ligne vide double.
+# Extract the corresponding block with awk
+# We want the content between the separation block following the command 
+# and the next separation block or a double empty line.
 awk -v pattern="$SEARCH_PATTERN" '
     BEGIN { found=0; block=0 }
     /^COMMAND:/ && index($0, pattern) {
@@ -41,17 +42,17 @@ awk -v pattern="$SEARCH_PATTERN" '
     }
     found && /^=======/ {
         block++
-        if (block == 2) { # On est après le header du tableau
+        if (block == 2) { # We are after the table header
             next
         }
     }
     found && block >= 2 {
         if (/^=====/ || /^$/) {
-            if (length($0) > 10 || /^$/) { # Fin du tableau ou ligne vide
+            if (length($0) > 10 || /^$/) { # End of table or empty line
                 exit
             }
         }
-        # Ne pas imprimer les messages informatifs de MFT
+        # Do not print MFT informative messages
         if ($0 !~ /Sending access register/) {
             print $0
         }
