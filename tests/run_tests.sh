@@ -95,4 +95,15 @@ fi
 
 
 
+# Test Dashboard output
+echo -n "Testing Dashboard output... "
+OUTPUT=$("$REPO_DIR/ibswinfo.sh" -d "$DEVICE" -o dashboard 2>/dev/null)
+
+if [[ "$OUTPUT" == *"Thermals"* && "$OUTPUT" == *"Cooling"* ]]; then
+    echo "OK"
+else
+    echo "FAILED"
+    exit 1
+fi
+
 echo "All tests passed successfully!"
