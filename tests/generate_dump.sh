@@ -56,7 +56,8 @@ EOF
 # -----------------------------------------------------------------------------
 # Dependency Check
 # -----------------------------------------------------------------------------
-if ! command -v mlxreg_ext &>/dev/null; then
+if ! command -v mlxreg_ext &>/dev/null;
+then
     echo "Error: 'mlxreg_ext' command not found. Please install NVIDIA Firmware Tools (MFT)."
     exit 1
 fi
@@ -66,19 +67,22 @@ DEVICE=$1
 # -----------------------------------------------------------------------------
 # Device Detection & Selection
 # -----------------------------------------------------------------------------
-if [[ -z "$DEVICE" ]]; then
+if [[ -z "$DEVICE" ]]
+then
     echo "Scanning for devices..."
     DEVICES_LIST=()
 
     # 1. Scan MST devices (local PCI/USB)
-    if command -v mst &>/dev/null; then
+    if command -v mst &>/dev/null
+    then
         while read -r line; do
             [[ -n "$line" ]] && DEVICES_LIST+=("$line (MST Device)")
         done < <(mst status 2>/dev/null | grep -oP '/dev/mst/SW_[^ ]+')
     fi
 
     # 2. Scan In-Band devices (via ibswitches)
-    if command -v ibswitches &>/dev/null; then
+    if command -v ibswitches &>/dev/null
+    then
         while read -r line; do
             lid=$(echo "$line" | grep -oP 'lid \K[0-9]+')
             name=$(echo "$line" | grep -oP '"[^"]+"')
@@ -87,9 +91,10 @@ if [[ -z "$DEVICE" ]]; then
     fi
 
     # 3. Interactive Menu
-    if [[ ${#DEVICES_LIST[@]} -eq 0 ]]; then
+    if [[ ${#DEVICES_LIST[@]} -eq 0 ]]
+    then
         echo "No devices found automatically."
-        read -p "Enter device path manually (e.g. /dev/mst/SW_... or lid-22): " DEVICE
+        read -r -p "Enter device path manually (e.g. /dev/mst/SW_... or lid-22): " DEVICE
     else
         echo ""
         echo "Found available devices:"
@@ -99,11 +104,14 @@ if [[ -z "$DEVICE" ]]; then
         echo "  0. Enter manually"
         echo ""
         
-        while [[ -z "$DEVICE" ]]; do
-            read -p "Select a device (0-${#DEVICES_LIST[@]}): " CHOICE
-            if [[ "$CHOICE" == "0" ]]; then
-                read -p "Enter device path manually: " DEVICE
-            elif [[ "$CHOICE" =~ ^[0-9]+$ ]] && [[ "$CHOICE" -ge 1 && "$CHOICE" -le "${#DEVICES_LIST[@]}" ]]; then
+        while [[ -z "$DEVICE" ]]
+        do
+            read -r -p "Select a device (0-${#DEVICES_LIST[@]}): " CHOICE
+            if [[ "$CHOICE" == "0" ]]
+            then
+                read -r -p "Enter device path manually: " DEVICE
+            elif [[ "$CHOICE" =~ ^[0-9]+$ ]] && [[ "$CHOICE" -ge 1 && "$CHOICE" -le "${#DEVICES_LIST[@]}" ]]
+            then
                 # Extract device identifier (first word)
                 SELECTED="${DEVICES_LIST[$((CHOICE-1))]}"
                 DEVICE=$(echo "$SELECTED" | awk '{print $1}')
@@ -114,7 +122,8 @@ if [[ -z "$DEVICE" ]]; then
     fi
 fi
 
-if [[ -z "$DEVICE" ]]; then
+if [[ -z "$DEVICE" ]]
+then
     echo "Error: No device specified."
     exit 1
 fi
@@ -140,18 +149,19 @@ commands=(
 
 echo ""
 echo "Generating dump..."
-echo "# TEST_METADATA" > "$OUTPUT_FILE"
-echo "# DATE=$(date)" >> "$OUTPUT_FILE"
-echo "# DEVICE=$DEVICE" >> "$OUTPUT_FILE"
+{
+    echo "# TEST_METADATA"
+    echo "# DATE=$(date)"
+    echo "# DEVICE=$DEVICE"
 
-for cmd in "${commands[@]}"; do
-    echo "======================================================================" >> "$OUTPUT_FILE"
-    echo "COMMAND: $cmd" >> "$OUTPUT_FILE"
-    echo "======================================================================" >> "$OUTPUT_FILE"
-    # Capture both stdout and stderr
-    eval "$cmd" >> "$OUTPUT_FILE" 2>&1
-    echo -e "\n" >> "$OUTPUT_FILE"
-done
+    for cmd in "${commands[@]}"; do
+        echo "======================================================================"
+        echo "COMMAND: $cmd"
+        echo "======================================================================"
+        eval "$cmd" 2>&1
+        echo -e "\n"
+    done
+} >> "$OUTPUT_FILE"
 
 echo "Done!"
 
@@ -160,7 +170,6 @@ echo "Done!"
 # -----------------------------------------------------------------------------
 
 # Try to auto-detect Part Number (MSGI register) and LID from the generated dump
-# Decodes hex string from 'part_number' field
 AUTO_PN=$(grep -A 15 "COMMAND: .* --reg_name MSGI" "$OUTPUT_FILE" | grep "part_number" | awk '{print $NF}' | sed 's/0x//g; s/00$//' | xxd -r -p 2>/dev/null | tr -d '\0' | tr -d '[:space:]')
 
 # Try to parse LID from device string
@@ -173,8 +182,8 @@ echo "  Part Number: ${AUTO_PN:-Unknown}"
 echo "  LID:         ${AUTO_LID:-Unknown}"
 
 # Ask for user confirmation (pre-filled with detected values)
-read -p "Confirm Part Number (or enter manually): " -e -i "$AUTO_PN" EXP_PN
-read -p "Confirm LID (or enter manually): " -e -i "$AUTO_LID" EXP_LID
+read -r -p "Confirm Part Number (or enter manually): " -e -i "$AUTO_PN" EXP_PN
+read -r -p "Confirm LID (or enter manually): " -e -i "$AUTO_LID" EXP_LID
 
 # Sanitize filenames
 CLEAN_PN=$(echo "${EXP_PN:-UnknownModel}" | tr -cd '[:alnum:]-')

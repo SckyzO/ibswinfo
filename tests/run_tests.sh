@@ -13,8 +13,10 @@ run_tests_for_dump() {
     echo "Testing with dump: $(basename "$dump_file")"
     
     # Extract metadata
-    local expected_pn=$(grep "# EXPECTED_PN=" "$dump_file" | cut -d= -f2)
-    local expected_lid=$(grep "# EXPECTED_LID=" "$dump_file" | cut -d= -f2)
+    local expected_pn
+    expected_pn=$(grep "# EXPECTED_PN=" "$dump_file" | cut -d= -f2)
+    local expected_lid
+    expected_lid=$(grep "# EXPECTED_LID=" "$dump_file" | cut -d= -f2)
     
     if [[ -z "$expected_pn" ]]; then
         echo "WARNING: No metadata found in dump (EXPECTED_PN), skipping advanced checks."
@@ -32,8 +34,10 @@ run_tests_for_dump() {
     echo "Using Device: $device_arg"
 
     # Test version (Global test, but good to run here too)
-    local script_version=$(grep '^VERSION=' "$REPO_DIR/ibswinfo.sh" | cut -d'"' -f2)
-    local output_v=$("$REPO_DIR/ibswinfo.sh" -v)
+    local script_version
+    script_version=$(grep '^VERSION=' "$REPO_DIR/ibswinfo.sh" | cut -d'"' -f2)
+    local output_v
+    output_v=$("$REPO_DIR/ibswinfo.sh" -v)
     if [[ "$output_v" != *"version $script_version"* ]]; then
         echo "FAILED: Version mismatch (Expected: $script_version, Got: $output_v)"
         return 1
@@ -41,11 +45,15 @@ run_tests_for_dump() {
 
     # Test Inventory
     echo -n "  [Inventory] "
-    local output_inv_file=$(mktemp)
-    local error_inv_file=$(mktemp)
+    local output_inv_file
+    output_inv_file=$(mktemp)
+    local error_inv_file
+    error_inv_file=$(mktemp)
     "$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o inventory > "$output_inv_file" 2> "$error_inv_file"
-    local output_inv=$(cat "$output_inv_file")
-    local error_inv=$(cat "$error_inv_file")
+    local output_inv
+    output_inv=$(cat "$output_inv_file")
+    local error_inv
+    error_inv=$(cat "$error_inv_file")
     rm "$output_inv_file" "$error_inv_file"
 
     if [[ -n "$expected_pn" ]]; then
@@ -65,7 +73,8 @@ run_tests_for_dump() {
 
     # Test JSON
     echo -n "  [JSON]      "
-    local output_json=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o json 2>/dev/null)
+    local output_json
+    output_json=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o json 2>/dev/null)
     if [[ "$output_json" == *"\"node_description\":"* ]]; then
         echo "OK"
     else
@@ -75,7 +84,8 @@ run_tests_for_dump() {
 
     # Test Dashboard
     echo -n "  [Dashboard] "
-    local output_dash=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o dashboard 2>/dev/null)
+    local output_dash
+    output_dash=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o dashboard 2>/dev/null)
     if [[ "$output_dash" == *"Thermals"* ]]; then
         echo "OK"
     else
@@ -93,8 +103,7 @@ echo "=== Running Multi-Version Tests ==="
 count=0
 for dump in "$REPO_DIR"/tests/dumps/ibsw_dump_*.txt; do
     if [[ -f "$dump" ]]; then
-        run_tests_for_dump "$dump"
-        if [[ $? -ne 0 ]]; then
+        if ! run_tests_for_dump "$dump"; then
             global_status=1
         fi
         ((count++))

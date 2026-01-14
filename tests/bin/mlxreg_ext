@@ -18,17 +18,13 @@ fi
 # Reconstruct the called command to find the corresponding block
 # We look for --reg_name and flags --get/--show_reg/--indexes
 REG_NAME=""
-INDEXES=""
 SHOW_REG=""
-GET_FLAG=0
 
 args=("$@")
 for ((i=0; i<${#args[@]}; i++)); do
     case "${args[i]}" in
         --reg_name) REG_NAME="${args[i+1]}"; ((i++)) ;;
-        --indexes) INDEXES="${args[i+1]}"; ((i++)) ;;
         --show_reg) SHOW_REG="${args[i+1]}"; ((i++)) ;;
-        --get) GET_FLAG=1 ;;
     esac
 done
 
@@ -37,8 +33,6 @@ if [[ -n "$SHOW_REG" ]]; then
     SEARCH_PATTERN="--show_reg $SHOW_REG"
 elif [[ -n "$REG_NAME" ]]; then
     SEARCH_PATTERN="--reg_name $REG_NAME"
-    [[ $GET_FLAG -eq 1 ]] && SEARCH_PATTERN="$SEARCH_PATTERN --get"
-    [[ -n "$INDEXES" ]] && SEARCH_PATTERN="$SEARCH_PATTERN --indexes $INDEXES"
 fi
 
 # Extract the corresponding block with awk
