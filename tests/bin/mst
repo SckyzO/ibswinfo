@@ -2,7 +2,8 @@
 
 # Mock pour mst
 if [[ "$1" == "version" ]]; then
-    echo "mst version 4.28.0, built on Dec 14 2023"
+    # Version extraite du dump
+    echo "mst, mft 4.33.0-169, built on Jul 24 2025, 16:49:29. Git SHA Hash: N/A"
     exit 0
 fi
 
@@ -14,6 +15,7 @@ if [[ "$1" == "status" ]]; then
     echo ""
     echo "MST devices:"
     echo "------------"
-    echo "/dev/mst/SW_MT53131_Quantum_lid-0x0001"
+    # Device extrait du dump
+    echo "/dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016"
     exit 0
 fi

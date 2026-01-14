@@ -1,28 +1,59 @@
 #!/usr/bin/env bash
 
-# Mock pour mlxreg_ext
-# On simulera les sorties en fonction de --reg_name
+# Mock intelligent pour mlxreg_ext
+# Il lit tests/mocks/ibsw_dump.txt et extrait la réponse correspondante.
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --reg_name) REG="$2"; shift 2 ;;
-        *) shift ;;
+DUMP_FILE="$(dirname "${BASH_SOURCE[0]}")/../mocks/ibsw_dump.txt"
+
+# Reconstruire la commande appelée pour trouver le bloc correspondant
+# On cherche --reg_name et les flags --get/--show_reg/--indexes
+REG_NAME=""
+INDEXES=""
+SHOW_REG=""
+GET_FLAG=0
+
+args=("$@")
+for ((i=0; i<${#args[@]}; i++)); do
+    case "${args[i]}" in
+        --reg_name) REG_NAME="${args[i+1]}"; ((i++)) ;;
+        --indexes) INDEXES="${args[i+1]}"; ((i++)) ;;
+        --show_reg) SHOW_REG="${args[i+1]}"; ((i++)) ;;
+        --get) GET_FLAG=1 ;;
     esac
 done
 
-# On pourra ajouter des sorties réelles ici plus tard
-case "$REG" in
-    MGIR)
-        echo "extended_major : 0x0000001b"
-        echo "extended_minor : 0x000007d0"
-        echo "extended_sub_minor : 0x0000075e"
-        echo "num_ports : 0x00000028"
-        echo "psid[0] : 0x4d545f30"
-        echo "psid[1] : 0x30303030"
-        echo "psid[2] : 0x30303030"
-        echo "psid[3] : 0x36330000"
-        ;;
-    *)
-        echo "Mock output for $REG"
-        ;;
-esac
+SEARCH_PATTERN=""
+if [[ -n "$SHOW_REG" ]]; then
+    SEARCH_PATTERN="--show_reg $SHOW_REG"
+elif [[ -n "$REG_NAME" ]]; then
+    SEARCH_PATTERN="--reg_name $REG_NAME"
+    [[ $GET_FLAG -eq 1 ]] && SEARCH_PATTERN="$SEARCH_PATTERN --get"
+    [[ -n "$INDEXES" ]] && SEARCH_PATTERN="$SEARCH_PATTERN --indexes $INDEXES"
+fi
+
+# Extraction du bloc correspondant avec awk
+# On veut le contenu entre le bloc de séparation suivant la commande et le prochain bloc de séparation ou une ligne vide double.
+awk -v pattern="$SEARCH_PATTERN" '
+    BEGIN { found=0; block=0 }
+    /^COMMAND:/ && index($0, pattern) {
+        found=1
+        next
+    }
+    found && /^=======/ {
+        block++
+        if (block == 2) { # On est après le header du tableau
+            next
+        }
+    }
+    found && block >= 2 {
+        if (/^=====/ || /^$/) {
+            if (length($0) > 10 || /^$/) { # Fin du tableau ou ligne vide
+                exit
+            }
+        }
+        # Ne pas imprimer les messages informatifs de MFT
+        if ($0 !~ /Sending access register/) {
+            print $0
+        }
+    }
+' "$DUMP_FILE"
