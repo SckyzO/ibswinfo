@@ -61,6 +61,15 @@ version() {
     echo "ibswinfo version $VERSION"
 }
 
+# helper for colored status icons
+c_stat() {
+    if [[ "$1" == "OK" ]]; then
+        echo "$I_OK"
+    else
+        echo "$I_ERR"
+    fi
+}
+
 # display separators
 sep()    { echo "-------------------------------------------------" ;}
 dblsep() { echo "=================================================" ;}
@@ -271,7 +280,7 @@ done
 mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 mft_req="4.18.0"      # minimum required MFT version
 mft_req_desc="4.22.0" # minimum required MFT version to set device name
-mft_max="4.31.0"      # highest MFT version tested
+mft_max="4.33.0"      # highest MFT version tested
 mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 [[ ${mft_cur//./} -lt ${mft_req//./} ]] && \
     err "MFT version must be >= $mft_req (current version is $mft_cur)"
@@ -346,6 +355,7 @@ _regs=$(for r in $reg_names; do
             echo "$r" "$(get_reg "$r" "${rid[$r]:-}" |& paste -s -d '@')" &
         done)
 # store them
+for r in $reg_names; do reg[$r]=""; done
 while read -r r v; do
     o=${v//@/$'\n'}
     [[ "$o" =~ -E- ]] && [[ $r != MGPIR ]] && err "${o/-E-/}"
@@ -598,9 +608,6 @@ case $out in
         echo "}}}" ; exit 0 ;;
 
     dashboard)
-        # Helper for colored status
-        c_stat() { [[ "$1" == "OK" ]] && echo "$I_OK" || echo "$I_ERR"; }
-        
         echo ""
         echo "${C_Bld}${C_B} $I_INFO $nd ${C_N}"
         echo "${C_B}------------------------------------------------------------${C_N}"
@@ -613,11 +620,10 @@ case $out in
         echo "${C_Bld}${C_B} $I_PWR Power Supplies${C_N}"
         echo "${C_B}------------------------------------------------------------${C_N}"
         for i in $psu_idxs; do
+            p_stat=$(c_stat "${ps[$i.pr]}")
             if [[ "${ps[$i.pr]}" == "OK" ]]; then
-                p_stat="$I_OK"
                 p_watt="${ps[$i.wt]:-0}W"
             else
-                p_stat="$I_ERR"
                 p_watt="-"
             fi
             printf " PSU%s: %b  %-15s" "$i" "$p_stat" "($p_watt)"
@@ -632,14 +638,15 @@ case $out in
         t_col=$C_G
         [[ $tp -ge $twl ]] && t_col=$C_Y
         [[ $tp -ge $twh ]] && t_col=$C_R
-        
         printf " Temp: %b%s°C${C_N} (Max: %s°C)\n" "$t_col" "$tp" "$mt"
         
         # Avg fan speed
         f_sum=0; f_cnt=0
-        for t in ${at_idxs:-}; do f_sum=$((f_sum + ${fs[$t]:-0})); ((f_cnt++)); done
-        f_avg=0
-        [[ $f_cnt -gt 0 ]] && f_avg=$((f_sum / f_cnt))
+        for t in ${at_idxs:-}; do 
+            f_sum=$((f_sum + ${fs[$t]:-0}))
+            ((f_cnt++))
+        done
+        f_avg=0; [[ $f_cnt -gt 0 ]] && f_avg=$((f_sum / f_cnt))
         
         f_stat=$(c_stat "$fa")
         printf " Fans: %b  (Avg: %s RPM)\n" "$f_stat" "$f_avg"
