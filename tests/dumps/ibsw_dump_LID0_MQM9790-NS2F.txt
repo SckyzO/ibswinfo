@@ -1,0 +1,354 @@
+# TEST_METADATA
+# EXPECTED_PN=MQM9790-NS2F
+# EXPECTED_LID=0
+# DATE=Thu Jan 15 12:10:57 AM CET 2026
+# DEVICE=/dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016
+======================================================================
+COMMAND: mst version
+======================================================================
+mst, mft 4.33.0-169, built on Jul 24 2025, 16:49:29. Git SHA Hash: N/A
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name MGIR --get
+======================================================================
+Sending access register...
+
+Field Name                      | Data    
+=============================================
+device_id                       | 0x0000d2f2
+device_hw_revision              | 0x000000a0
+pvs                             | 0x00000000
+technology                      | 0x00000004
+num_ports                       | 0x00000080
+ib_mad_gen                      | 0x00000000
+hw_dev_id                       | 0x00000257
+module_master_fw_default        | 0x00000000
+cpo_indication                  | 0x00000000
+ga_valid                        | 0x00000000
+development                     | 0x00000000
+manufacturing_base_mac_47_32    | 0x0000b0cf
+ga                              | 0x00000000
+chip_type                       | 0x00000000
+manufacturing_base_mac_31_0     | 0x0ecc0480
+device_ticks_per_msec           | 0x00000000
+uptime                          | 0x003ecec2
+sub_minor                       | 0x00000000
+minor                           | 0x00000000
+major                           | 0x00000000
+secured                         | 0x00000001
+signed_fw                       | 0x00000001
+debug                           | 0x00000000
+dev                             | 0x00000000
+string_tlv                      | 0x00000001
+dev_sc                          | 0x00000000
+build_id                        | 0x00000000
+year                            | 0x00002024
+day                             | 0x00000010
+month                           | 0x00000011
+hour                            | 0x00000000
+psid[3]                         | 0x00000030
+psid[2]                         | 0x0000005f
+psid[1]                         | 0x00000054
+psid[0]                         | 0x0000004d
+psid[7]                         | 0x00000030
+psid[6]                         | 0x00000030
+psid[5]                         | 0x00000030
+psid[4]                         | 0x00000030
+psid[11]                        | 0x00000037
+psid[10]                        | 0x00000035
+psid[9]                         | 0x00000030
+psid[8]                         | 0x00000030
+psid[15]                        | 0x00000000
+psid[14]                        | 0x00000000
+psid[13]                        | 0x00000000
+psid[12]                        | 0x00000039
+ini_file_version                | 0x00000000
+extended_major                  | 0x0000001f
+extended_minor                  | 0x000007de
+extended_sub_minor              | 0x00000824
+isfu_major                      | 0x00000001
+disabled_tiles_bitmap           | 0x0000ff00
+life_cycle                      | 0x00000001
+sec_boot                        | 0x00000001
+encryption                      | 0x00000001
+life_cycle_msb                  | 0x00000000
+dev_state                       | 0x00000000
+issu_able                       | 0x00000000
+pds                             | 0x00000000
+dev_counter                     | 0x00000000
+sub_minor                       | 0x00000000
+minor                           | 0x00000000
+major                           | 0x00000000
+rom3_type                       | 0x00000000
+rom3_arch                       | 0x00000000
+rom2_type                       | 0x00000000
+rom2_arch                       | 0x00000000
+rom1_type                       | 0x00000000
+rom1_arch                       | 0x00000000
+rom0_type                       | 0x00000000
+rom0_arch                       | 0x00000000
+build                           | 0x00000000
+minor                           | 0x00000000
+major                           | 0x00000000
+build                           | 0x00000000
+minor                           | 0x00000000
+major                           | 0x00000000
+build                           | 0x00000000
+minor                           | 0x00000000
+major                           | 0x00000000
+build                           | 0x00000000
+minor                           | 0x00000000
+major                           | 0x00000000
+dev_branch_tag[3]               | 0x00000000
+dev_branch_tag[2]               | 0x00000000
+dev_branch_tag[1]               | 0x00000000
+dev_branch_tag[0]               | 0x00000000
+dev_branch_tag[7]               | 0x00000000
+dev_branch_tag[6]               | 0x00000000
+dev_branch_tag[5]               | 0x00000000
+dev_branch_tag[4]               | 0x00000000
+dev_branch_tag[11]              | 0x00000000
+dev_branch_tag[10]              | 0x00000000
+dev_branch_tag[9]               | 0x00000000
+dev_branch_tag[8]               | 0x00000000
+dev_branch_tag[15]              | 0x00000000
+dev_branch_tag[14]              | 0x00000000
+dev_branch_tag[13]              | 0x00000000
+dev_branch_tag[12]              | 0x00000000
+dev_branch_tag[19]              | 0x00000000
+dev_branch_tag[18]              | 0x00000000
+dev_branch_tag[17]              | 0x00000000
+dev_branch_tag[16]              | 0x00000000
+dev_branch_tag[23]              | 0x00000000
+dev_branch_tag[22]              | 0x00000000
+dev_branch_tag[21]              | 0x00000000
+dev_branch_tag[20]              | 0x00000000
+dev_branch_tag[27]              | 0x00000000
+dev_branch_tag[26]              | 0x00000000
+dev_branch_tag[25]              | 0x00000000
+dev_branch_tag[24]              | 0x00000000
+=============================================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name MGPIR --get --indexes slot_index=0x0
+======================================================================
+Sending access register...
+
+Field Name                   | Data    
+==========================================
+num_of_devices               | 0x00000000
+num_of_modules_per_system    | 0x00000020
+devices_per_flash            | 0x00000000
+device_type                  | 0x00000000
+slot_index                   | 0x00000000
+num_of_modules               | 0x00000020
+num_of_slots                 | 0x00000000
+max_modules_per_slot         | 0x00000020
+num_of_resource_modules      | 0x00000000
+num_lanes_per_sub_module     | 0x00000000
+max_sub_modules_index        | 0x00000000
+==========================================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name MSGI --get
+======================================================================
+Sending access register...
+
+Field Name          | Data    
+=================================
+serial_number[0]    | 0x4d543234
+serial_number[1]    | 0x34315430
+serial_number[2]    | 0x30344636
+serial_number[3]    | 0x00000000
+serial_number[4]    | 0x00000000
+serial_number[5]    | 0x00000000
+part_number[0]      | 0x4d514d39
+part_number[1]      | 0x3739302d
+part_number[2]      | 0x4e533246
+part_number[3]      | 0x00000000
+part_number[4]      | 0x00000000
+revision            | 0x41480000
+product_name[0]     | 0x476f7269
+product_name[1]     | 0x6c6c6120
+product_name[2]     | 0x556e6d6e
+product_name[3]     | 0x67204942
+product_name[4]     | 0x20343030
+product_name[5]     | 0x00000000
+product_name[6]     | 0x00000000
+product_name[7]     | 0x00000000
+product_name[8]     | 0x00000000
+product_name[9]     | 0x00000000
+product_name[10]    | 0x00000000
+product_name[11]    | 0x00000000
+product_name[12]    | 0x00000000
+product_name[13]    | 0x00000000
+product_name[14]    | 0x00000000
+product_name[15]    | 0x00000000
+=================================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name MSCI --get --indexes index=0x0
+======================================================================
+Sending access register...
+
+Field Name | Data    
+========================
+index      | 0x00000000
+version    | 0x00000003
+========================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name SPZR --get --indexes swid=0x0
+======================================================================
+Sending access register...
+
+Field Name              | Data    
+=====================================
+enh_sw_p0               | 0x00000000
+g0                      | 0x00000000
+ng                      | 0x00000000
+sig                     | 0x00000000
+mp                      | 0x00000000
+vk                      | 0x00000000
+cm                      | 0x00000000
+enh_sw_p0_mask          | 0x00000000
+ndm                     | 0x00000000
+cm2                     | 0x00000000
+router_entity           | 0x00000000
+swid                    | 0x00000000
+capability_mask         | 0xe550d848
+system_image_guid_h     | 0xb0cf0e03
+system_image_guid_l     | 0x00cc0480
+guid0_h                 | 0xb0cf0e03
+guid0_l                 | 0x00cc0480
+node_guid_h             | 0xb0cf0e03
+node_guid_l             | 0x00cc0480
+capability_mask2        | 0x0000043b
+max_pkey                | 0x00000008
+node_description[0]     | 0x69737772
+node_description[1]     | 0x31733433
+node_description[2]     | 0x6c310000
+node_description[3]     | 0x00000000
+node_description[4]     | 0x00000000
+node_description[5]     | 0x00000000
+node_description[6]     | 0x00000000
+node_description[7]     | 0x00000000
+node_description[8]     | 0x00000000
+node_description[9]     | 0x00000000
+node_description[10]    | 0x00000000
+node_description[11]    | 0x00000000
+node_description[12]    | 0x00000000
+node_description[13]    | 0x00000000
+node_description[14]    | 0x00000000
+node_description[15]    | 0x00000000
+=====================================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name MSPS --get
+======================================================================
+Sending access register...
+
+Field Name  | Data    
+=========================
+psu0[0]     | 0x50000010
+psu0[1]     | 0x00000002
+psu0[2]     | 0x80000124
+psu0[3]     | 0x00000001
+psu0[4]     | 0x4d543234
+psu0[5]     | 0x34315430
+psu0[6]     | 0x30314630
+psu0[7]     | 0x00000000
+psu0[8]     | 0x00000000
+psu0[9]     | 0x00000000
+psu0[10]    | 0x00000000
+psu0[11]    | 0x00000000
+psu0[12]    | 0x4d544546
+psu0[13]    | 0x2d505346
+psu0[14]    | 0x2d41432d
+psu0[15]    | 0x4b000000
+psu0[16]    | 0x00000000
+psu0[17]    | 0x00000000
+psu0[18]    | 0x00000000
+psu0[19]    | 0x00000000
+psu1[0]     | 0x50000010
+psu1[1]     | 0x00000002
+psu1[2]     | 0x8000012c
+psu1[3]     | 0x00000001
+psu1[4]     | 0x4d543234
+psu1[5]     | 0x34315430
+psu1[6]     | 0x30314554
+psu1[7]     | 0x00000000
+psu1[8]     | 0x00000000
+psu1[9]     | 0x00000000
+psu1[10]    | 0x00000000
+psu1[11]    | 0x00000000
+psu1[12]    | 0x4d544546
+psu1[13]    | 0x2d505346
+psu1[14]    | 0x2d41432d
+psu1[15]    | 0x4b000000
+psu1[16]    | 0x00000000
+psu1[17]    | 0x00000000
+psu1[18]    | 0x00000000
+psu1[19]    | 0x00000000
+=========================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name MTMP --get --indexes sensor_index=0x0,slot_index=0x0
+======================================================================
+Sending access register...
+
+Field Name                  | Data    
+=========================================
+sensor_index                | 0x00000000
+slot_index                  | 0x00000000
+asic_index                  | 0x00000000
+ig                          | 0x00000000
+i                           | 0x00000000
+temperature                 | 0x000001c0
+max_temperature             | 0x000001d0
+sdme                        | 0x00000000
+weme                        | 0x00000000
+mtr                         | 0x00000000
+mte                         | 0x00000000
+temperature_threshold_hi    | 0x00000348
+sdee                        | 0x00000000
+tee                         | 0x00000000
+temperature_threshold_lo    | 0x000002f8
+sensor_name_hi              | 0x61736963
+sensor_name_lo              | 0x00000000
+=========================================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --reg_name MFCR --get
+======================================================================
+Sending access register...
+
+Field Name          | Data    
+=================================
+pwm_frequency       | 0x00000044
+pwm_active          | 0x00000001
+tacho_active        | 0x000003fe
+tacho_active_msb    | 0x0000001f
+=================================
+
+
+======================================================================
+COMMAND: mlxreg_ext -d /dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016 --show_reg MFCR
+======================================================================
+Field Name          | Address (Bytes) | Offset (Bits) | Size (Bits) | Access  
+=============================================================================
+pwm_frequency       | 0x00000000      | 0             | 7           | RW             
+pwm_active          | 0x00000004      | 0             | 5           | RO             
+tacho_active        | 0x00000004      | 16            | 10          | RO             
+tacho_active_msb    | 0x00000004      | 26            | 6           | RO             
+=============================================================================
+
+
