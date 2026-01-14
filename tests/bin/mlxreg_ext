@@ -3,7 +3,17 @@
 # Intelligent mock for mlxreg_ext
 # It reads tests/mocks/ibsw_dump.txt and extracts the corresponding response.
 
-DUMP_FILE="$(dirname "${BASH_SOURCE[0]}")/../mocks/ibsw_dump.txt"
+DUMP_FILE="${MOCK_DUMP_FILE:-$(dirname "${BASH_SOURCE[0]}")/../mocks/ibsw_dump_4.33.0_MQM9790.txt}"
+
+if [[ ! -f "$DUMP_FILE" ]]; then
+    # Try to resolve relative path if executed from root
+    if [[ -f "tests/mocks/$(basename "$DUMP_FILE")" ]]; then
+         DUMP_FILE="tests/mocks/$(basename "$DUMP_FILE")"
+    else
+         echo "ERROR: Dump file not found: $DUMP_FILE" >&2
+         exit 1
+    fi
+fi
 
 # Reconstruct the called command to find the corresponding block
 # We look for --reg_name and flags --get/--show_reg/--indexes

@@ -1,9 +1,21 @@
 #!/usr/bin/env bash
 
+DUMP_FILE="${MOCK_DUMP_FILE:-$(dirname "${BASH_SOURCE[0]}")/../mocks/ibsw_dump_4.33.0_MQM9790.txt}"
+
+if [[ ! -f "$DUMP_FILE" ]]; then
+    # Try to resolve relative path if executed from root
+    if [[ -f "tests/mocks/$(basename "$DUMP_FILE")" ]]; then
+         DUMP_FILE="tests/mocks/$(basename "$DUMP_FILE")"
+    else
+         echo "ERROR: Dump file not found: $DUMP_FILE" >&2
+         exit 1
+    fi
+fi
+
 # Mock for mst
 if [[ "$1" == "version" ]]; then
-    # Version extracted from dump
-    echo "mst, mft 4.33.0-169, built on Jul 24 2025, 16:49:29. Git SHA Hash: N/A"
+    # Version extracted from dump (searching for "mst, mft")
+    grep -A 5 "COMMAND: mst version" "$DUMP_FILE" | grep "mst, mft"
     exit 0
 fi
 
@@ -15,7 +27,8 @@ if [[ "$1" == "status" ]]; then
     echo ""
     echo "MST devices:"
     echo "------------"
-    # Device extracted from dump
-    echo "/dev/mst/SW_MT54002_iswr1s43l1_lid-0x0016"
+    # Device extracted from dump (searching for mlxreg_ext command)
+    # Extract the device path from the first mlxreg_ext command found
+    awk '/COMMAND: mlxreg_ext/ {for(i=1;i<=NF;i++) if($i=="-d") print $(i+1); exit}' "$DUMP_FILE"
     exit 0
 fi

@@ -109,19 +109,22 @@ we'll complete the list.
 ## Usage
 
 ```none
-Usage: ibswinfo.sh -d <device> [-T] [-o <inventory|vitals|status>] [-S <description>]
+Usage: ibswinfo.sh -d <device> [-T] [-o <inventory|vitals|status|json|dashboard>] [-S <description>] [-v]
 
   global options:
     -d <device>             MST device path ("mst status" shows devices list)
                             or LID (eg. "-d lid-44")
+    -v                      show version
   get info:
-    -o <output_category>    Only display inventory|vitals|status information
+    -o <output_category>    Only display inventory|vitals|status|json|dashboard information
     -T                      get QSFP modules temperature
-
-  set info:
-    -S <description>        set device description (63 char max.)
-
 ```
+
+### New in v0.8
+
+*   **Dashboard View:** Use `-o dashboard` for a modern, colorized CLI dashboard.
+*   **JSON Output:** Use `-o json` to get full switch information in machine-readable JSON format.
+*   **Version Flag:** Use `-v` to check the current version.
 
 ### Default output
 
