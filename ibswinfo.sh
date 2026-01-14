@@ -22,7 +22,7 @@ set -u      # stop on uninitialized variable
 
 MFT_URL="https://www.mellanox.com/products/adapter-software/firmware-tools"
 MAX_ND_LEN=64
-VERSION="0.8"
+VERSION="0.7"
 
 # UI Constants
 C_R=$'\033[0;31m' # Red
@@ -271,7 +271,7 @@ done
 mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 mft_req="4.18.0"      # minimum required MFT version
 mft_req_desc="4.22.0" # minimum required MFT version to set device name
-mft_max="4.33.0"      # highest MFT version tested
+mft_max="4.31.0"      # highest MFT version tested
 mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 [[ ${mft_cur//./} -lt ${mft_req//./} ]] && \
     err "MFT version must be >= $mft_req (current version is $mft_cur)"
@@ -583,148 +583,79 @@ case $out in
         exit 0
         ;;
 
-        json)
+    json)
+        # Construct JSON output
+        echo -n "{\"node_description\":\"$nd\",\"inventory\":{\"part_number\":\"$pn\",\"serial\":\"$sn\",\"product_name\":\"$cn\",\"revision\":\"$rv\",\"psid\":\"$psid\",\"guid\":\"$guid\",\"fw_version\":\"$(printf "%d.%04d.%04d" "$maj" "$min" "$sub")\",\"cpld\":$cpld,\"psus\":["
+        first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "{\"id\":$i,\"part_number\":\"${ps[$i.pn]}\",\"serial\":\"${ps[$i.sn]}\"}"; first=0; done
+        echo -n "]},\"status\":{\"fans\":\"$fa\",\"psus\":["
+        first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "{\"id\":$i,\"status\":\"${ps[$i.pr]}\",\"dc\":\"${ps[$i.dc]}\",\"fan\":\"${ps[$i.fs]}\"}"; first=0; done
+        echo -n "]},\"vitals\":{\"uptime_sec\":$s_uptime,\"temp_c\":$tp,\"max_temp_c\":$mt,\"temp_thresholds\":{\"low\":$twl,\"high\":$twh},\"fans_rpm\":{"
+        first=1; for t in ${at_idxs:-}; do [[ $first -eq 0 ]] && echo -n ","; echo -n "\"fan_$t\":${fs[$t]}"; first=0; done
+        echo -n "},\"psu_power_w\":{"
+        first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "\"psu_$i\":${ps[$i.wt]:-0}"; first=0; done
+        echo -n "},\"modules_temp_c\":{"
+        first=1; if [[ "$opt_T" == "1" ]]; then for q in $(seq 1 "$nm"); do [[ $first -eq 0 ]] && echo -n ","; echo -n "\"module_$q\":${qt[$q]}"; first=0; done; fi
+        echo "}}}" ; exit 0 ;;
 
-            # Construct JSON output
+    dashboard)
+        # Helper for colored status
+        c_stat() { [[ "$1" == "OK" ]] && echo "$I_OK" || echo "$I_ERR"; }
+        
+        echo ""
+        echo "${C_Bld}${C_B} $I_INFO $nd ${C_N}"
+        echo "${C_B}------------------------------------------------------------${C_N}"
+        printf " %-2s %-26s %-2s %-20s\n" "$I_CHIP" "Model: ${C_C}$pn${C_N}" "$I_CHIP" "S/N: ${C_C}$sn${C_N}"
+        printf " %-2s %-26s %-2s %-20s\n" "  "     "Modules: $nm"            "  "     "Ports: $np"
+        printf " %-2s %-26s %-2s %-20s\n" "  "     "Rev:   $rv"              "  "     "FW:  $maj.$min.$sub"
+        printf " %-2s %-26s\n"            "$I_TIME" "Uptime: $(sec_to_dhms "$s_uptime")"
+        echo ""
 
-            echo -n "{\"node_description\":\"$nd\",\"inventory\":{\"part_number\":\"$pn\",\"serial\":\"$sn\",\"product_name\":\"$cn\",\"revision\":\"$rv\",\"psid\":\"$psid\",\"guid\":\"$guid\",\"fw_version\":\"$(printf "%d.%04d.%04d" "$maj" "$min" "$sub")\",\"cpld\":$cpld,\"psus\":["
-
-            first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "{\"id\":$i,\"part_number\":\"${ps[$i.pn]}\",\"serial\":\"${ps[$i.sn]}\"}"; first=0; done
-
-            echo -n "]},\"status\":{\"fans\":\"$fa\",\"psus\":["
-
-            first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "{\"id\":$i,\"status\":\"${ps[$i.pr]}\",\"dc\":\"${ps[$i.dc]}\",\"fan\":\"${ps[$i.fs]}\"}"; first=0; done
-
-            echo -n "]},\"vitals\":{\"uptime_sec\":$s_uptime,\"temp_c\":$tp,\"max_temp_c\":$mt,\"temp_thresholds\":{\"low\":$twl,\"high\":$twh},\"fans_rpm\":{"
-
-            first=1; for t in ${at_idxs:-}; do [[ $first -eq 0 ]] && echo -n ","; echo -n "\"fan_$t\":${fs[$t]}"; first=0; done
-
-            echo -n "},\"psu_power_w\":{"
-
-            first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "\"psu_$i\":${ps[$i.wt]:-0}"; first=0; done
-
-            echo -n "},\"modules_temp_c\":{"
-
-            first=1; if [[ "$opt_T" == "1" ]]; then for q in $(seq 1 "$nm"); do [[ $first -eq 0 ]] && echo -n ","; echo -n "\"module_$q\":${qt[$q]}"; first=0; done; fi
-
-            echo "}}}" ; exit 0 ;;
-
-    
-
-        dashboard)
-
-            # Helper for colored status
-
-            c_stat() { [[ "
-    " == "OK" ]] && echo "$I_OK" || echo "$I_ERR"; }
-
-            
-
-            echo ""
-
-            echo "${C_Bld}${C_B} $I_INFO $nd ${C_N}"
-
-            echo "${C_B}------------------------------------------------------------${C_N}"
-
-            printf " %-2s %-26s %-2s %-20s\n" "$I_CHIP" "Model: ${C_C}$pn${C_N}" "$I_CHIP" "S/N: ${C_C}$sn${C_N}"
-
-            printf " %-2s %-26s %-2s %-20s\n" "  "     "Modules: $nm"            "  "     "Ports: $np"
-
-            printf " %-2s %-26s %-2s %-20s\n" "  "     "Rev:   $rv"              "  "     "FW:  $maj.$min.$sub"
-
-            printf " %-2s %-26s\n"            "$I_TIME" "Uptime: $(sec_to_dhms "$s_uptime")"
-
-            echo ""
-
-    
-
-            echo "${C_Bld}${C_B} $I_PWR Power Supplies${C_N}"
-
-            echo "${C_B}------------------------------------------------------------${C_N}"
-
-            for i in $psu_idxs; do
-
-                p_stat=$(c_stat "${ps[$i.pr]}")
-
+        echo "${C_Bld}${C_B} $I_PWR Power Supplies${C_N}"
+        echo "${C_B}------------------------------------------------------------${C_N}"
+        for i in $psu_idxs; do
+            if [[ "${ps[$i.pr]}" == "OK" ]]; then
+                p_stat="$I_OK"
                 p_watt="${ps[$i.wt]:-0}W"
-
-                [[ "${ps[$i.pr]}" != "OK" ]] && p_watt="-"
-
-                printf " PSU%s: %b  %-15s" "$i" "$p_stat" "($p_watt)"
-
-            done
-
-            echo ""
-
-            echo ""
-
-    
-
-            echo "${C_Bld}${C_B} $I_TEMP Thermals & $I_FAN Cooling${C_N}"
-
-            echo "${C_B}------------------------------------------------------------${C_N}"
-
-            
-
-            # Colorize temp
-
-            t_col=$C_G
-
-            [[ $tp -ge $twl ]] && t_col=$C_Y
-
-            [[ $tp -ge $twh ]] && t_col=$C_R
-
-            
-
-            printf " Temp: %b%s°C${C_N} (Max: %s°C)\n" "$t_col" "$tp" "$mt"
-
-            
-
-            # Avg fan speed
-
-            f_sum=0; f_cnt=0
-
-            for t in ${at_idxs:-}; do 
-
-                f_sum=$((f_sum + ${fs[$t]:-0}))
-
-                ((f_cnt++))
-
-            done
-
-            f_avg=0
-
-            [[ $f_cnt -gt 0 ]] && f_avg=$((f_sum / f_cnt))
-
-            
-
-            f_stat=$(c_stat "$fa")
-
-            printf " Fans: %b  (Avg: %s RPM)\n" "$f_stat" "$f_avg"
-
-            
-
-            if [[ "$opt_T" == "1" ]]; then
-
-                echo ""
-
-                echo " QSFP Modules:"
-
-                for q in $(seq 1 "$nm"); do
-
-                    printf " %02d: %s°C " "$q" "${qt[$q]:-0}"
-
-                    [[ $((q % 5)) -eq 0 ]] && echo ""
-
-                done
-
-                echo ""
-
+            else
+                p_stat="$I_ERR"
+                p_watt="-"
             fi
+            printf " PSU%s: %b  %-15s" "$i" "$p_stat" "($p_watt)"
+        done
+        echo ""
+        echo ""
 
+        echo "${C_Bld}${C_B} $I_TEMP Thermals & $I_FAN Cooling${C_N}"
+        echo "${C_B}------------------------------------------------------------${C_N}"
+        
+        # Colorize temp
+        t_col=$C_G
+        [[ $tp -ge $twl ]] && t_col=$C_Y
+        [[ $tp -ge $twh ]] && t_col=$C_R
+        
+        printf " Temp: %b%s°C${C_N} (Max: %s°C)\n" "$t_col" "$tp" "$mt"
+        
+        # Avg fan speed
+        f_sum=0; f_cnt=0
+        for t in ${at_idxs:-}; do f_sum=$((f_sum + ${fs[$t]:-0})); ((f_cnt++)); done
+        f_avg=0
+        [[ $f_cnt -gt 0 ]] && f_avg=$((f_sum / f_cnt))
+        
+        f_stat=$(c_stat "$fa")
+        printf " Fans: %b  (Avg: %s RPM)\n" "$f_stat" "$f_avg"
+        
+        if [[ "$opt_T" == "1" ]]; then
             echo ""
-
-            exit 0 ;;
+            echo " QSFP Modules:"
+            for q in $(seq 1 "$nm"); do
+                printf " %02d: %s°C " "$q" "${qt[$q]:-0}"
+                [[ $((q % 5)) -eq 0 ]] && echo ""
+            done
+            echo ""
+        fi
+        echo ""
+        exit 0
+        ;;
 esac
 
 
