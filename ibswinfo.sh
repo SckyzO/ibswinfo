@@ -561,6 +561,103 @@ case $out in
         done
         exit 0
         ;;
+
+    json)
+        # Construct JSON output
+        cat << EOJ
+{
+  "node_description": "$nd",
+  "inventory": {
+    "part_number": "$pn",
+    "serial": "$sn",
+    "product_name": "$cn",
+    "revision": "$rv",
+    "psid": "$psid",
+    "guid": "$guid",
+    "fw_version": "$(printf "%d.%04d.%04d" "$maj" "$min" "$sub")",
+    "cpld": "$cpld",
+    "psus": [
+$(
+    first=1
+    for i in $psu_idxs; do
+        [[ $first -eq 0 ]] && echo ","
+        cat << EOP
+      {
+        "id": $i,
+        "part_number": "${ps[$i.pn]}",
+        "serial": "${ps[$i.sn]}"
+      }
+EOP
+        first=0
+    done
+)
+    ]
+  },
+  "status": {
+    "fans": "$fa",
+    "psus": [
+$(
+    first=1
+    for i in $psu_idxs; do
+        [[ $first -eq 0 ]] && echo ","
+        cat << EOP
+      {
+        "id": $i,
+        "status": "${ps[$i.pr]}",
+        "dc": "${ps[$i.dc]}",
+        "fan": "${ps[$i.fs]}"
+      }
+EOP
+        first=0
+    done
+)
+    ]
+  },
+  "vitals": {
+    "uptime_sec": $s_uptime,
+    "temp_c": $tp,
+    "max_temp_c": $mt,
+    "temp_thresholds": {
+        "low": $twl,
+        "high": $twh
+    },
+    "fans_rpm": {
+$(
+    first=1
+    for t in ${at_idxs:-}; do
+        [[ $first -eq 0 ]] && echo ","
+        echo "      \"fan_$t\": ${fs[$t]}"
+        first=0
+    done
+)
+    },
+    "psu_power_w": {
+$(
+    first=1
+    for i in $psu_idxs; do
+        [[ $first -eq 0 ]] && echo ","
+        echo "      \"psu_$i\": ${ps[$i.wt]:-0}"
+        first=0
+    done
+)
+    },
+    "modules_temp_c": {
+$(
+    first=1
+    if [[ "$opt_T" == "1" ]]; then
+        for q in $(seq 1 "$nm"); do
+            [[ $first -eq 0 ]] && echo ","
+            echo "      \"module_$q\": ${qt[$q]}"
+            first=0
+        done
+    fi
+)
+    }
+  }
+}
+EOJ
+        exit 0
+        ;;
 esac
 
 

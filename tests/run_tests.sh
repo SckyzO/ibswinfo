@@ -49,4 +49,50 @@ else
     exit 1
 fi
 
+# Test JSON output
+
+echo -n "Testing JSON output... "
+
+OUTPUT=$("$REPO_DIR/ibswinfo.sh" -d "$DEVICE" -o json 2>/dev/null)
+
+
+
+# Basic JSON validation (check for some keys and valid structure)
+
+if [[ "$OUTPUT" == *"\"node_description\":"* && "$OUTPUT" == *"\"uptime_sec\":"* ]]; then
+
+    # Try to validate with python if available
+
+    if command -v python3 &>/dev/null; then
+
+        echo "$OUTPUT" | python3 -m json.tool >/dev/null
+
+        if [[ $? -eq 0 ]]; then
+
+            echo "OK"
+
+        else
+
+            echo "FAILED (Invalid JSON)"
+
+            exit 1
+
+        fi
+
+    else
+
+        echo "OK (Basic check)"
+
+    fi
+
+else
+
+    echo "FAILED"
+
+    exit 1
+
+fi
+
+
+
 echo "All tests passed successfully!"
