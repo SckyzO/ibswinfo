@@ -50,9 +50,9 @@ if [[ -z "$DEVICE" ]]; then
         echo ""
         echo "Tips:"
         echo "  - Run 'mst start' and 'mst ib add' to populate /dev/mst/"
-        echo "  - Or use a LID (check 'ibswitches' output, e.g., lid-22)"
+        echo "  - Or use a LID (run 'ibswitches' to find it, then enter e.g., lid-22)"
         echo ""
-        read -p "Please enter the device path or LID: " DEVICE
+        read -p "Enter device (e.g. /dev/mst/SW_... or lid-XX): " DEVICE
     fi
 fi
 
@@ -96,6 +96,16 @@ commands=(
 echo ""
 echo "Generating dump..."
 
-for cmd in "${commands[@]}"
-do
-    echo "======================================================================
+for cmd in "${commands[@]}"; do
+    echo "======================================================================" >> "$OUTPUT_FILE"
+    echo "COMMAND: $cmd" >> "$OUTPUT_FILE"
+    echo "======================================================================" >> "$OUTPUT_FILE"
+    # Execute command and capture combined output
+    # We use eval to handle arguments correctly
+    eval "$cmd" >> "$OUTPUT_FILE" 2>&1
+    echo -e "\n" >> "$OUTPUT_FILE"
+done
+
+echo "Done!"
+echo "Generated file: $OUTPUT_FILE"
+echo "Please rename this file to 'ibsw_dump_<MFT_VERSION>_<MODEL>.txt' and place it in 'tests/dumps/'."
