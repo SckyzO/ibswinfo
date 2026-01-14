@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# Mock pour mlxreg_ext
+# On simulera les sorties en fonction de --reg_name
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reg_name) REG="$2"; shift 2 ;;
+        *) shift ;;
+    esac
+done
+
+# On pourra ajouter des sorties réelles ici plus tard
+case "$REG" in
+    MGIR)
+        echo "extended_major : 0x0000001b"
+        echo "extended_minor : 0x000007d0"
+        echo "extended_sub_minor : 0x0000075e"
+        echo "num_ports : 0x00000028"
+        echo "psid[0] : 0x4d545f30"
+        echo "psid[1] : 0x30303030"
+        echo "psid[2] : 0x30303030"
+        echo "psid[3] : 0x36330000"
+        ;;
+    *)
+        echo "Mock output for $REG"
+        ;;
+esac
