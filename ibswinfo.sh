@@ -22,6 +22,7 @@ set -u      # stop on uninitialized variable
 
 MFT_URL="https://www.mellanox.com/products/adapter-software/firmware-tools"
 MAX_ND_LEN=64
+VERSION="0.7"
 
 
 ## -- functions ---------------------------------------------------------------
@@ -35,6 +36,11 @@ err() {
 # display warning and continue
 warn() {
     [[ "$*" != "" ]] && echo "warning: $*" >&2
+}
+
+# display version
+version() {
+    echo "ibswinfo version $VERSION"
 }
 
 # display separators
@@ -155,11 +161,12 @@ mstr_dec() {
 
 usage() {
     cat << EOU
-Usage: ${0##*/} -d <device> [-T] [-o <$outputs>] [-S <description>]
+Usage: ${0##*/} -d <device> [-T] [-o <$outputs>] [-S <description>] [-v]
 
   global options:
     -d <device>             MST device path ("mst status" shows devices list)
                             or LID (eg. "-d lid-44")
+    -v                      show version
   get info:
     -o <output_category>    Only display $outputs information
     -T                      get transceiver modules temperature
@@ -179,12 +186,16 @@ dev=""
 desc=""
 opt_T=0
 opt_y=0
-optspec="hd:To:S:y"
+optspec="hd:To:S:yv"
 while getopts "$optspec" optchar; do
     case "${optchar}" in
         h|\?)
             usage >&2
             exit 2
+            ;;
+        v)
+            version
+            exit 0
             ;;
         d)
             dev=${OPTARG}
