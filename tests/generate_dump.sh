@@ -1,13 +1,35 @@
 #!/usr/bin/env bash
 #
-# Helper script to generate a dump file for ibswinfo regression testing.
-# Copy this script to your switch (or a machine with MFT installed), run it,
-# and submit the generated file via a Pull Request.
+# =============================================================================
+# ibswinfo Dump Generator
+# =============================================================================
 #
+# Description:
+#   This utility script generates a comprehensive register dump from an NVIDIA
+#   Infiniband switch. This dump is used to create regression tests and mocks
+#   for the 'ibswinfo' tool, allowing development and testing without physical
+#   access to the hardware.
+#
+# Usage:
+#   ./generate_dump.sh [device]
+#
+# Requirements:
+#   - NVIDIA Firmware Tools (MFT) installed (specifically 'mst' and 'mlxreg_ext').
+#   - Root privileges (usually required to access hardware registers).
+#   - 'ibswitches' (optional, for better auto-detection).
+#
+# Output:
+#   Generates a file named 'ibsw_dump_LID<lid>_<Model>.txt' in the current directory.
+#
+# =============================================================================
+
+set -e # Exit immediately if a command exits with a non-zero status
 
 OUTPUT_FILE="ibsw_dump_tmp_$(date +%Y%m%d_%H%M%S).txt"
 
-# Help
+# -----------------------------------------------------------------------------
+# Help Function
+# -----------------------------------------------------------------------------
 usage() {
     cat << EOF
 Usage: $(basename "$0") [device]
@@ -16,17 +38,24 @@ Helper script to generate a dump file for ibswinfo regression testing.
 
 Arguments:
   device        Optional. Device path (e.g., /dev/mst/SW_...) or LID (e.g., lid-22).
-                If not provided, the script attempts to auto-detect devices.
+                If not provided, the script attempts to auto-detect devices using
+                'mst status' and 'ibswitches'.
 
 Options:
   -h, --help    Show this help message.
+
+Examples:
+  ./generate_dump.sh           # Interactive mode (auto-detection)
+  ./generate_dump.sh lid-22    # Capture dump for LID 22
 EOF
     exit 0
 }
 
 [[ "$1" == "-h" || "$1" == "--help" ]] && usage
 
-# Check dependencies
+# -----------------------------------------------------------------------------
+# Dependency Check
+# -----------------------------------------------------------------------------
 if ! command -v mlxreg_ext &>/dev/null; then
     echo "Error: 'mlxreg_ext' command not found. Please install NVIDIA Firmware Tools (MFT)."
     exit 1
@@ -34,18 +63,21 @@ fi
 
 DEVICE=$1
 
+# -----------------------------------------------------------------------------
+# Device Detection & Selection
+# -----------------------------------------------------------------------------
 if [[ -z "$DEVICE" ]]; then
     echo "Scanning for devices..."
     DEVICES_LIST=()
 
-    # Scan MST
+    # 1. Scan MST devices (local PCI/USB)
     if command -v mst &>/dev/null; then
         while read -r line; do
             [[ -n "$line" ]] && DEVICES_LIST+=("$line (MST Device)")
         done < <(mst status 2>/dev/null | grep -oP '/dev/mst/SW_[^ ]+')
     fi
 
-    # Scan IBSWITCHES
+    # 2. Scan In-Band devices (via ibswitches)
     if command -v ibswitches &>/dev/null; then
         while read -r line; do
             lid=$(echo "$line" | grep -oP 'lid \K[0-9]+')
@@ -54,6 +86,7 @@ if [[ -z "$DEVICE" ]]; then
         done < <(ibswitches 2>/dev/null | grep "^Switch")
     fi
 
+    # 3. Interactive Menu
     if [[ ${#DEVICES_LIST[@]} -eq 0 ]]; then
         echo "No devices found automatically."
         read -p "Enter device path manually (e.g. /dev/mst/SW_... or lid-22): " DEVICE
@@ -71,7 +104,7 @@ if [[ -z "$DEVICE" ]]; then
             if [[ "$CHOICE" == "0" ]]; then
                 read -p "Enter device path manually: " DEVICE
             elif [[ "$CHOICE" =~ ^[0-9]+$ ]] && [[ "$CHOICE" -ge 1 && "$CHOICE" -le "${#DEVICES_LIST[@]}" ]]; then
-                # Extract just the device path/lid (before the first space)
+                # Extract device identifier (first word)
                 SELECTED="${DEVICES_LIST[$((CHOICE-1))]}"
                 DEVICE=$(echo "$SELECTED" | awk '{print $1}')
             else
@@ -88,7 +121,10 @@ fi
 
 echo "Using device: $DEVICE"
 
-# Commands to run
+# -----------------------------------------------------------------------------
+# Dump Generation
+# -----------------------------------------------------------------------------
+# List of MFT commands to execute to gather all necessary registers
 commands=(
     "mst version"
     "mlxreg_ext -d $DEVICE --reg_name MGIR --get"
@@ -112,14 +148,22 @@ for cmd in "${commands[@]}"; do
     echo "======================================================================" >> "$OUTPUT_FILE"
     echo "COMMAND: $cmd" >> "$OUTPUT_FILE"
     echo "======================================================================" >> "$OUTPUT_FILE"
+    # Capture both stdout and stderr
     eval "$cmd" >> "$OUTPUT_FILE" 2>&1
     echo -e "\n" >> "$OUTPUT_FILE"
 done
 
 echo "Done!"
 
-# Try to auto-detect Part Number and LID from the dump we just made
+# -----------------------------------------------------------------------------
+# Metadata Auto-Detection & Finalization
+# -----------------------------------------------------------------------------
+
+# Try to auto-detect Part Number (MSGI register) and LID from the generated dump
+# Decodes hex string from 'part_number' field
 AUTO_PN=$(grep -A 15 "COMMAND: .* --reg_name MSGI" "$OUTPUT_FILE" | grep "part_number" | awk '{print $NF}' | sed 's/0x//g; s/00$//' | xxd -r -p 2>/dev/null | tr -d '\0' | tr -d '[:space:]')
+
+# Try to parse LID from device string
 AUTO_LID=$(echo "$DEVICE" | grep -oP 'lid-\K[0-9]+')
 [[ -z "$AUTO_LID" ]] && AUTO_LID=$(echo "$DEVICE" | grep -oP 'lid-0x\K[0-9a-fA-F]+' | xargs -I{} printf "%d" 0x{})
 
@@ -128,19 +172,20 @@ echo "Detected metadata:"
 echo "  Part Number: ${AUTO_PN:-Unknown}"
 echo "  LID:         ${AUTO_LID:-Unknown}"
 
-# Ask for confirmation or manual entry if auto-detect failed
+# Ask for user confirmation (pre-filled with detected values)
 read -p "Confirm Part Number (or enter manually): " -e -i "$AUTO_PN" EXP_PN
 read -p "Confirm LID (or enter manually): " -e -i "$AUTO_LID" EXP_LID
 
-# Clean up PN for filename
+# Sanitize filenames
 CLEAN_PN=$(echo "${EXP_PN:-UnknownModel}" | tr -cd '[:alnum:]-')
 CLEAN_LID=$(echo "${EXP_LID:-UnknownLID}" | tr -cd '[:alnum:]')
 
 FINAL_FILENAME="ibsw_dump_LID${CLEAN_LID}_${CLEAN_PN}.txt"
 
-# Update header with confirmed metadata
+# Inject confirmed metadata into the dump header for automated testing
 sed -i "1a # EXPECTED_PN=$EXP_PN" "$OUTPUT_FILE"
 sed -i "2a # EXPECTED_LID=$EXP_LID" "$OUTPUT_FILE"
+
 mv "$OUTPUT_FILE" "$FINAL_FILENAME"
 
 echo ""
