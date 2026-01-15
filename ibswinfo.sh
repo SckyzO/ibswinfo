@@ -609,16 +609,24 @@ case $out in
 
     dashboard)
         echo ""
-        echo "${C_Bld}${C_B} $I_INFO $nd ${C_N}"
+        # Header
+        echo "${C_Bld}${C_B} $I_INFO $nd ${C_N}(${C_C}$pn${C_N})"
+        echo "${C_B}────────────────────────────────────────────────────────────${C_N}"
+        printf "  %-12s %-20s %-12s %-10s\n" "S/N:" "$sn" "Rev:" "$rv"
+        printf "  %-12s %-20s %-12s %-10s\n" "FW:" "$maj.$min.$sub" "CPLD:" "$cpld"
+        echo ""
+        
+        # System
+        echo "${C_Bld}${C_B} $I_CHIP SYSTEM & $I_TIME UPTIME${C_N}"
         echo "${C_B}------------------------------------------------------------${C_N}"
-        printf " %-2s %-26s %-2s %-20s\n" "$I_CHIP" "Model: ${C_C}$pn${C_N}" "$I_CHIP" "S/N: ${C_C}$sn${C_N}"
-        printf " %-2s %-26s %-2s %-20s\n" "  "     "Modules: $nm"            "  "     "Ports: $np"
-        printf " %-2s %-26s %-2s %-20s\n" "  "     "Rev:   $rv"              "  "     "FW:  $maj.$min.$sub"
-        printf " %-2s %-26s\n"            "$I_TIME" "Uptime: $(sec_to_dhms "$s_uptime")"
+        printf "  %-12s %-20s %-12s %-10s\n" "Modules:" "$nm" "Ports:" "$np"
+        printf "  %-12s %s\n" "Since:" "$(sec_to_dhms "$s_uptime")"
         echo ""
 
-        echo "${C_Bld}${C_B} $I_PWR Power Supplies${C_N}"
+        # Power
+        echo "${C_Bld}${C_B} $I_PWR POWER SUPPLY${C_N}"
         echo "${C_B}------------------------------------------------------------${C_N}"
+        p_count=0
         for i in $psu_idxs; do
             p_stat=$(c_stat "${ps[$i.pr]}")
             if [[ "${ps[$i.pr]}" == "OK" ]]; then
@@ -626,40 +634,44 @@ case $out in
             else
                 p_watt="-"
             fi
-            printf " PSU%s: %b  %-15s" "$i" "$p_stat" "($p_watt)"
+            printf "  %-6s %b  %-14s" "PSU$i" "$p_stat" "($p_watt)"
+            p_count=$((p_count + 1))
+            [[ $((p_count % 2)) -eq 0 ]] && echo ""
         done
-        echo ""
+        [[ $((p_count % 2)) -ne 0 ]] && echo ""
         echo ""
 
-        echo "${C_Bld}${C_B} $I_TEMP Thermals & $I_FAN Cooling${C_N}"
+        # Thermals & Fans
+        echo "${C_Bld}${C_B} $I_TEMP THERMALS & $I_FAN COOLING${C_N}"
         echo "${C_B}------------------------------------------------------------${C_N}"
         
-        # Colorize temp
+        # Temp logic
         t_col=$C_G
         [[ $tp -ge $twl ]] && t_col=$C_Y
         [[ $tp -ge $twh ]] && t_col=$C_R
-        printf " Temp: %b%s°C${C_N} (Max: %s°C)\n" "$t_col" "$tp" "$mt"
         
-        # Avg fan speed
-        f_sum=0; f_cnt=0
+        # Fans logic
+        f_sum=0; f_cnt=0; f_avg=0
         for t in ${at_idxs:-}; do 
             f_sum=$((f_sum + ${fs[$t]:-0}))
-            ((f_cnt++))
+            f_cnt=$((f_cnt + 1))
         done
-        f_avg=0; [[ $f_cnt -gt 0 ]] && f_avg=$((f_sum / f_cnt))
+        [[ $f_cnt -gt 0 ]] && f_avg=$((f_sum / f_cnt))
+        f_stat=$(c_stat "${fa:-OK}")
+
+        printf "  %-12s ${t_col}%s°C${C_N} (Max: %s°C)\n" "Temp:" "$tp" "$mt"
+        printf "  %-12s %s RPM (Avg)   Status: %b\n" "Fans:" "$f_avg" "$f_stat"
         
-        f_stat=$(c_stat "$fa")
-        printf " Fans: %b  (Avg: %s RPM)\n" "$f_stat" "$f_avg"
-        
-        if [[ "$opt_T" == "1" ]]; then
+        if [[ "$opt_T" == "1" && -n "${qt[*]:-}" ]]; then
             echo ""
-            echo " QSFP Modules:"
+            echo "  QSFP Modules:"
             for q in $(seq 1 "$nm"); do
-                printf " %02d: %s°C " "$q" "${qt[$q]:-0}"
+                printf "  %02d: %s°C " "$q" "${qt[$q]:-0}"
                 [[ $((q % 5)) -eq 0 ]] && echo ""
             done
             echo ""
         fi
+        
         echo ""
         exit 0
         ;;

@@ -86,7 +86,7 @@ run_tests_for_dump() {
     echo -n "  [Dashboard] "
     local output_dash
     output_dash=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o dashboard 2>/dev/null)
-    if [[ "$output_dash" == *"Thermals"* ]]; then
+    if [[ "$output_dash" == *"THERMALS"* ]]; then
         echo "OK"
     else
         echo "FAILED (Dashboard output mismatch)"
