@@ -551,7 +551,7 @@ case $out in
         out_kv "revision" "$rv"
         out_kv "fw_version" "$(printf "%d.%04d.%04d" "$maj" "$min" "$sub")"
         out_kv "cpld" "$cpld"
-        [[ "${ps[${psu_idxs:0:1}.pr]}" != "" ]] && {
+        [[ -n "${psu_idxs:-}" && "${ps[${psu_idxs:0:1}.pr]:-}" != "" ]] && {
             for i in $psu_idxs; do
                 out_kv "psu$i.part_number"   "${ps[$i.pn]}"
                 out_kv "psu$i.serial" "${ps[$i.sn]}"
@@ -561,7 +561,7 @@ case $out in
         ;;
 
     status)
-        [[ "${ps[${psu_idxs:0:1}.pr]}" != "" ]] && {
+        [[ -n "${psu_idxs:-}" && "${ps[${psu_idxs:0:1}.pr]:-}" != "" ]] && {
             for i in $psu_idxs; do
                 out_kv "psu$i.status"  "${ps[$i.pr]}"
                 out_kv "psu$i.dc"      "${ps[$i.dc]}"
@@ -575,7 +575,7 @@ case $out in
 
     vitals)
         out_kv "uptime (sec)" "$s_uptime"
-        [[ "${ps[${psu_idxs:0:1}.pr]}" != "" ]] && {
+        [[ -n "${psu_idxs:-}" && "${ps[${psu_idxs:0:1}.pr]:-}" != "" ]] && {
             for i in $psu_idxs; do
                 out_kv "psu$i.power (W)" "${ps[$i.wt]}"
             done
@@ -695,7 +695,7 @@ out_kv "CPLD" "$cpld"
 sep
 out_kv "uptime (d-h:m:s)" "$(sec_to_dhms "$s_uptime")"
 sep
-[[ "${ps[${psu_idxs:0:1}.pr]}" != "" ]] && {
+[[ -n "${psu_idxs:-}" && "${ps[${psu_idxs:0:1}.pr]:-}" != "" ]] && {
     for i in $psu_idxs; do
         out_kv "PSU$i status"    "${ps[$i.pr]}"
         out_kv "     P/N"        "${ps[$i.pn]}"

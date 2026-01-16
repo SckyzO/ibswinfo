@@ -118,6 +118,9 @@ Usage: ibswinfo.sh -d <device> [-T] [-o <inventory|vitals|status|json|dashboard>
   get info:
     -o <output_category>    Only display inventory|vitals|status|json|dashboard information
     -T                      get QSFP modules temperature
+  set info:
+    -S <description>        set device description (64 char max.)
+    -y                      skip confirmation
 ```
 
 ### New in v0.8
@@ -306,7 +309,6 @@ Contributions are welcome! If you have access to a different switch model or MFT
 4.  Submit a Pull Request adding this file to `tests/dumps/`.
 
 This allows us to run regression tests against real hardware data without needing physical access to every switch model.
-
 
 
 
