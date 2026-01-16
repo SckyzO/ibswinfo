@@ -77,15 +77,15 @@ then
     then
         while read -r line; do
             [[ -n "$line" ]] && DEVICES_LIST+=("$line (MST Device)")
-        done < <(mst status 2>/dev/null | grep -oP '/dev/mst/SW_[^ ]+')
+        done < <(mst status 2>/dev/null | sed -n 's/.*\(\/dev\/mst\/SW_[^ ]*\).*/\1/p')
     fi
 
     # 2. Scan In-Band devices (via ibswitches)
     if command -v ibswitches &>/dev/null
     then
         while read -r line; do
-            lid=$(echo "$line" | grep -oP 'lid \K[0-9]+')
-            name=$(echo "$line" | grep -oP '"[^"]+"')
+            lid=$(echo "$line" | sed -n 's/.* lid \([0-9][0-9]*\).*/\1/p')
+            name=$(echo "$line" | sed -n 's/.*"\([^"]*\)".*/\1/p')
             [[ -n "$lid" ]] && DEVICES_LIST+=("lid-$lid (In-Band: $name)")
         done < <(ibswitches 2>/dev/null | grep "^Switch")
     fi
@@ -158,7 +158,8 @@ echo "Generating dump..."
         echo "======================================================================"
         echo "COMMAND: $cmd"
         echo "======================================================================"
-        eval "$cmd" 2>&1
+        IFS=' ' read -r -a cmd_parts <<< "$cmd"
+        "${cmd_parts[@]}" 2>&1
         echo -e "\n"
     done
 } >> "$OUTPUT_FILE"
@@ -173,8 +174,11 @@ echo "Done!"
 AUTO_PN=$(grep -A 15 "COMMAND: .* --reg_name MSGI" "$OUTPUT_FILE" | grep "part_number" | awk '{print $NF}' | sed 's/0x//g; s/00$//' | xxd -r -p 2>/dev/null | tr -d '\0' | tr -d '[:space:]')
 
 # Try to parse LID from device string
-AUTO_LID=$(echo "$DEVICE" | grep -oP 'lid-\K[0-9]+')
-[[ -z "$AUTO_LID" ]] && AUTO_LID=$(echo "$DEVICE" | grep -oP 'lid-0x\K[0-9a-fA-F]+' | xargs -I{} printf "%d" 0x{})
+AUTO_LID=$(echo "$DEVICE" | sed -n 's/.*lid-\([0-9][0-9]*\).*/\1/p')
+if [[ -z "$AUTO_LID" ]]; then
+    hex_lid=$(echo "$DEVICE" | sed -n 's/.*lid-0x\([0-9a-fA-F][0-9a-fA-F]*\).*/\1/p')
+    [[ -n "$hex_lid" ]] && AUTO_LID=$(printf "%d" "0x$hex_lid")
+fi
 
 echo ""
 echo "Detected metadata:"
@@ -192,8 +196,13 @@ CLEAN_LID=$(echo "${EXP_LID:-UnknownLID}" | tr -cd '[:alnum:]')
 FINAL_FILENAME="ibsw_dump_LID${CLEAN_LID}_${CLEAN_PN}.txt"
 
 # Inject confirmed metadata into the dump header for automated testing
-sed -i "1a # EXPECTED_PN=$EXP_PN" "$OUTPUT_FILE"
-sed -i "2a # EXPECTED_LID=$EXP_LID" "$OUTPUT_FILE"
+tmp_file=$(mktemp)
+awk -v pn="$EXP_PN" -v lid="$EXP_LID" '
+    NR==1 {print; print "# EXPECTED_PN="pn; next}
+    NR==2 {print "# EXPECTED_LID="lid}
+    {print}
+' "$OUTPUT_FILE" > "$tmp_file"
+mv "$tmp_file" "$OUTPUT_FILE"
 
 mv "$OUTPUT_FILE" "$FINAL_FILENAME"
 

@@ -1,1 +1,20 @@
 TODO.md
+AGENTS.md
+
+# temp artifacts
+temp/
+*.tmp
+*.swp
+*~
+
+# outputs/logs
+output*.txt
+output*.log
+*.log
+
+# env files
+.env
+.env.*
+
+# macOS metadata
+.DS_Store
