@@ -188,20 +188,32 @@ mstr_dec() {
 
 usage() {
     cat << EOU
-Usage: ${0##*/} -d <device> [-T] [-o <$outputs>] [-S <description>] [-v]
+Usage: ${0##*/} -d <device> [options]
+       ${0##*/} -A [options]
 
-  global options:
-    -d <device>             MST device path ("mst status" shows devices list)
-                            or LID (eg. "-d lid-44")
-    -v                      show version
-  get info:
-    -o <output_category>    Only display $outputs information
-    -T                      get transceiver modules temperature
+Device selection:
+  -d <device>             MST device path (from "mst status") or LID (lid-44)
+  -A                      auto-detect (MST, fallback ibswitches); auto-select
+                          if one device, prompt if several (TTY required)
 
-  set info:
-    -S <description>        set device description ($MAX_ND_LEN char max.)
-    -y                      skip confirmation
+Output:
+  -o <category>           only display one output category (see below)
+  -T                      include module temperatures (QSFP)
 
+Output categories:
+  inventory               identity/firmware/PSU identifiers
+  status                  PSU + fan status summary
+  vitals                  temps, fan RPM, power, uptime
+  json                    full JSON output
+  dashboard               colorized summary view
+
+Set device info:
+  -S <description>        set device description ($MAX_ND_LEN char max.)
+  -y                      skip confirmation
+
+Misc:
+  -v                      show version
+  -h                      show this help
 EOU
     return 0
 }
@@ -213,7 +225,8 @@ dev=""
 desc=""
 opt_T=0
 opt_y=0
-optspec="hd:To:S:yv"
+opt_A=0
+optspec="hd:ATo:S:yv"
 while getopts "$optspec" optchar; do
     case "${optchar}" in
         h|\?)
@@ -226,6 +239,9 @@ while getopts "$optspec" optchar; do
             ;;
         d)
             dev=${OPTARG}
+            ;;
+        A)
+            opt_A=1
             ;;
         T)
             opt_T=1
@@ -247,6 +263,51 @@ while getopts "$optspec" optchar; do
 	    ;;
     esac
 done
+
+# auto-detect and interactively select device (if requested and not provided)
+if [[ -z "$dev" && "$opt_A" == "1" ]]; then
+    DEVICES_LIST=()
+
+    if command -v mst &>/dev/null; then
+        while read -r line; do
+            [[ -n "$line" ]] && DEVICES_LIST+=("$line (MST Device)")
+        done < <(mst status 2>/dev/null | sed -n 's/.*\(\/dev\/mst\/SW_[^ ]*\).*/\1/p')
+    fi
+
+    if [[ ${#DEVICES_LIST[@]} -eq 0 ]] && command -v ibswitches &>/dev/null; then
+        while read -r line; do
+            lid=$(echo "$line" | sed -n 's/.* lid \([0-9][0-9]*\).*/\1/p')
+            name=$(echo "$line" | sed -n 's/.*"\([^"]*\)".*/\1/p')
+            [[ -n "$lid" ]] && DEVICES_LIST+=("lid-$lid (In-Band: $name)")
+        done < <(ibswitches 2>/dev/null | grep "^Switch")
+    fi
+
+    [[ ${#DEVICES_LIST[@]} -eq 0 ]] && err "no devices found (mst/ibswitches)"
+    [[ ${#DEVICES_LIST[@]} -gt 1 && ! -t 0 ]] && err "multiple devices found; use -d to select"
+
+    if [[ ${#DEVICES_LIST[@]} -eq 1 ]]; then
+        dev=$(echo "${DEVICES_LIST[0]}" | awk '{print $1}')
+    else
+        echo ""
+        echo "Found available devices:"
+        for i in "${!DEVICES_LIST[@]}"; do
+            echo "  $((i+1)). ${DEVICES_LIST[$i]}"
+        done
+        echo "  0. Enter manually"
+        echo ""
+
+        while [[ -z "$dev" ]]; do
+            read -r -p "Select a device (0-${#DEVICES_LIST[@]}): " CHOICE
+            if [[ "$CHOICE" == "0" ]]; then
+                read -r -p "Enter device path manually: " dev
+            elif [[ "$CHOICE" =~ ^[0-9]+$ ]] && [[ "$CHOICE" -ge 1 && "$CHOICE" -le "${#DEVICES_LIST[@]}" ]]; then
+                dev=$(echo "${DEVICES_LIST[$((CHOICE-1))]}" | awk '{print $1}')
+            else
+                echo "Invalid choice. Please try again."
+            fi
+        done
+    fi
+fi
 
 # drop -T for inventory/status outputs
 [[ "$out" =~ inventory|status ]] && opt_T=0
@@ -291,7 +352,7 @@ mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 
 
 # device
-[[ $dev == "" ]] && err "missing device argument"
+[[ $dev == "" ]] && err "missing device argument (use -d or -A)"
 [[ ${dev:0:4} != "lid-" ]] && {
     [[ ${dev:0:8} == '/dev/mst' ]] && dev=${dev/\/dev\/mst\//}
     [[ ${dev:0:3} == "SW_" ]] || err "$dev doesn't look like a switch device name"

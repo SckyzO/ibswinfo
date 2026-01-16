@@ -109,18 +109,32 @@ we'll complete the list.
 ## Usage
 
 ```none
-Usage: ibswinfo.sh -d <device> [-T] [-o <inventory|vitals|status|json|dashboard>] [-S <description>] [-v]
+Usage: ibswinfo.sh -d <device> [options]
+       ibswinfo.sh -A [options]
 
-  global options:
-    -d <device>             MST device path ("mst status" shows devices list)
-                            or LID (eg. "-d lid-44")
-    -v                      show version
-  get info:
-    -o <output_category>    Only display inventory|vitals|status|json|dashboard information
-    -T                      get QSFP modules temperature
-  set info:
-    -S <description>        set device description (64 char max.)
-    -y                      skip confirmation
+Device selection:
+  -d <device>             MST device path (from "mst status") or LID (lid-44)
+  -A                      auto-detect (MST, fallback ibswitches); auto-select
+                          if one device, prompt if several (TTY required)
+
+Output:
+  -o <category>           only display one output category (see below)
+  -T                      include module temperatures (QSFP)
+
+Output categories:
+  inventory               identity/firmware/PSU identifiers
+  status                  PSU + fan status summary
+  vitals                  temps, fan RPM, power, uptime
+  json                    full JSON output
+  dashboard               colorized summary view
+
+Set device info:
+  -S <description>        set device description (64 char max.)
+  -y                      skip confirmation
+
+Misc:
+  -v                      show version
+  -h                      show this help
 ```
 
 ### New in v0.8
@@ -309,6 +323,3 @@ Contributions are welcome! If you have access to a different switch model or MFT
 4.  Submit a Pull Request adding this file to `tests/dumps/`.
 
 This allows us to run regression tests against real hardware data without needing physical access to every switch model.
-
-
-
