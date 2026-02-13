@@ -147,6 +147,71 @@ Misc:
 *   **JSON Output:** Use `-o json` to get full switch information in machine-readable JSON format.
 *   **Version Flag:** Use `-v` to check the current version.
 
+### Dashboard output
+
+The dashboard view provides a modern, structured display with colored status indicators and progress bars:
+
+```none
+# ./ibswinfo.sh -d <device> -o dashboard -T
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║ switch-hdr-01                    Gorilla Unmng IB 400        ██ OK             ║
+║                                                                                ║
+║ FW: 31.2014.2084         Uptime: 21d-00:05:48         P/N: MQM9790-NS2F        ║
+║                                                                                ║
+╠════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║ POWER SUPPLY                                                                   ║
+║                                                                                ║
+║    PSU 0  ██  █████████████░░░░░  292 W                                        ║
+║    PSU 1  ██  █████████████░░░░░  304 W                                        ║
+║                                                                                ║
+║    Total Power Consumption: 596 W                                              ║
+║                                                                                ║
+╠════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║ THERMAL                                                                        ║
+║                                                                                ║
+║    Ambient:   59C  ██████░░░░░░ 61C                                            ║
+║    Threshold: ██ 95-105C                                                       ║
+║    Modules:   14/32 active (56-62C)                                            ║
+║                                                                                ║
+╠════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║ FAN SPEEDS (RPM)                                                               ║
+║                                                                                ║
+║    Fan 01:  24018       Fan 02:  22394          Fan 03:  24018                 ║
+║    Fan 04:  23178       Fan 05:  24018          Fan 06:  22394                 ║
+║    Fan 07:  24461       Fan 08:  22394          Fan 09:  24461                 ║
+║    Fan 10:  22779       Fan 11:  24461          Fan 12:  23590                 ║
+║    Fan 13:  24461       Fan 14:  22394                                         ║
+║                                                                                ║
+╠════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║ MODULE TEMPERATURES                                                            ║
+║                                                                                ║
+║    Module 04: 56C  █████░░░░░         Module 05: 56C  █████░░░░░               ║
+║    Module 20: 57C  █████░░░░░         Module 21: 61C  █████░░░░░               ║
+║    Module 22: 61C  █████░░░░░         Module 23: 62C  █████░░░░░               ║
+║    Module 24: 59C  █████░░░░░         Module 25: 60C  █████░░░░░               ║
+║    Module 26: 60C  █████░░░░░         Module 27: 62C  █████░░░░░               ║
+║    Module 28: 61C  █████░░░░░         Module 29: 61C  █████░░░░░               ║
+║    Module 30: 59C  █████░░░░░         Module 31: 58C  █████░░░░░               ║
+║                                                                                ║
+║    18 modules not connected                                                    ║
+║                                                                                ║
+╠════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║ HARDWARE DETAILS                                                               ║
+║                                                                                ║
+║    S/N:  <redacted>                      GUID: <redacted>                      ║
+║    PSID: MT_0000000579                   CPLD: 3                               ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+```
+
+> **Note:** In a real terminal, the `██` blocks and progress bars are displayed in colors (green for OK, yellow for WARNING, red for CRITICAL).
+
 ### Default output
 
 By default, `ibswinfo` presents all the available information for a switch in a
