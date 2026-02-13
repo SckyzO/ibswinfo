@@ -139,7 +139,11 @@ Misc:
 
 ### New in v0.8
 
-*   **Dashboard View:** Use `-o dashboard` for a modern, colorized CLI dashboard.
+*   **Dashboard View:** Use `-o dashboard` for a clean CLI dashboard with:
+    - Colored status blocks (██) for OK/WARNING/CRITICAL states
+    - Progress bars for PSU load and temperatures
+    - Grid layouts: 3 columns for fans, 2 columns for modules
+    - Perfect alignment on all terminals
 *   **JSON Output:** Use `-o json` to get full switch information in machine-readable JSON format.
 *   **Version Flag:** Use `-v` to check the current version.
 

@@ -22,7 +22,7 @@ set -u      # stop on uninitialized variable
 
 MFT_URL="https://www.mellanox.com/products/adapter-software/firmware-tools"
 MAX_ND_LEN=64
-VERSION="0.7"
+VERSION="0.8"
 
 # UI Constants
 C_R=$'\033[0;31m' # Red
@@ -32,6 +32,7 @@ C_B=$'\033[0;34m' # Blue
 C_C=$'\033[0;36m' # Cyan
 C_N=$'\033[0m'    # No Color
 C_Bld=$'\033[1m'  # Bold
+C_Dim=$'\033[2m'  # Dim
 
 I_OK="${C_G}✔${C_N}"
 I_ERR="${C_R}✘${C_N}"
@@ -181,6 +182,124 @@ mstr_dec() {
     # sort fields, and convert them, in one fell swoop
     htos "$(awk -v f="$f" '$0 ~ f {gsub(/\[|\]/," "); print}' \
             <<< "${reg[$r]}" | sort -k2n | awk '{printf $NF}')"
+}
+
+## -- dashboard functions ----------------------------------------------------
+
+strip_ansi() {
+    echo "$1" | sed 's/\x1b\[[0-9;]*m//g'
+}
+
+visible_len() {
+    local stripped=$(strip_ansi "$1")
+    echo "${#stripped}"
+}
+
+print_border() {
+    local char=${1:-═}
+    local left=${2:-╔}
+    local right=${3:-╗}
+    local width=${4:-76}
+    local border=""
+    # Add 2 to width to compensate for spaces in print_line()
+    for ((i=0; i<width+2; i++)); do
+        border+="$char"
+    done
+    printf "%s%s%s\n" "$left" "$border" "$right"
+}
+
+print_line() {
+    local content="$1"
+    local width=${2:-76}
+    local visible=$(visible_len "$content")
+    local padding=$((width - visible))
+    printf "║ %s%*s ║\n" "$content" "$padding" ""
+}
+
+print_2col() {
+    local left="$1"
+    local right="$2"
+    local width=${4:-76}
+    local sep_pos=${3:-$((width / 2))}
+
+    local left_vis=$(visible_len "$left")
+    local right_vis=$(visible_len "$right")
+    local left_pad=$((sep_pos - left_vis))
+    local right_pad=$((width - sep_pos - right_vis))
+
+    printf "║ %s%*s%s%*s ║\n" "$left" "$left_pad" "" "$right" "$right_pad" ""
+}
+
+print_3col() {
+    local col1="$1"
+    local col2="$2"
+    local col3="$3"
+    local width=${4:-76}
+
+    local c1_w=24
+    local c2_w=24
+    local c3_w=$((width - c1_w - c2_w))
+
+    local c1_vis=$(visible_len "$col1")
+    local c2_vis=$(visible_len "$col2")
+    local c3_vis=$(visible_len "$col3")
+
+    local c1_pad=$((c1_w - c1_vis))
+    local c2_pad=$((c2_w - c2_vis))
+    local c3_pad=$((c3_w - c3_vis))
+
+    printf "║ %s%*s%s%*s%s%*s ║\n" "$col1" "$c1_pad" "" "$col2" "$c2_pad" "" "$col3" "$c3_pad" ""
+}
+
+progress_bar() {
+    local current=$1
+    local max=$2
+    local width=${3:-20}
+
+    [[ $max -eq 0 ]] && max=1
+
+    local percent=$((current * 100 / max))
+    local filled=$((current * width / max))
+    [[ $filled -gt $width ]] && filled=$width
+    local empty=$((width - filled))
+
+    local color=""
+    if [[ $percent -lt 70 ]]; then
+        color=$C_G
+    elif [[ $percent -lt 85 ]]; then
+        color=$C_Y
+    else
+        color=$C_R
+    fi
+
+    local bar="${color}"
+    for ((i=0; i<filled; i++)); do bar+="█"; done
+    bar+="${C_Dim}"
+    for ((i=0; i<empty; i++)); do bar+="░"; done
+    bar+="${C_N}"
+
+    echo "$bar"
+}
+
+status_block() {
+    local status="$1"
+    case "$status" in
+        OK)
+            echo "${C_G}██${C_N}"
+            ;;
+        WARNING|WARN)
+            echo "${C_Y}██${C_N}"
+            ;;
+        CRITICAL|ERROR)
+            echo "${C_R}██${C_N}"
+            ;;
+        INFO)
+            echo "${C_B}██${C_N}"
+            ;;
+        *)
+            echo "${C_Dim}██${C_N}"
+            ;;
+    esac
 }
 
 
@@ -669,71 +788,210 @@ case $out in
         echo "}}}" ; exit 0 ;;
 
     dashboard)
-        echo ""
-        # Header
-        echo "${C_Bld}${C_B} $I_INFO $nd ${C_N}(${C_C}$pn${C_N})"
-        echo "${C_B}────────────────────────────────────────────────────────────${C_N}"
-        printf "  %-12s %-20s %-12s %-10s\n" "S/N:" "$sn" "Rev:" "$rv"
-        printf "  %-12s %-20s %-12s %-10s\n" "FW:" "$maj.$min.$sub" "CPLD:" "$cpld"
-        echo ""
-        
-        # System
-        echo "${C_Bld}${C_B} $I_CHIP SYSTEM & $I_TIME UPTIME${C_N}"
-        echo "${C_B}------------------------------------------------------------${C_N}"
-        printf "  %-12s %-20s %-12s %-10s\n" "Modules:" "$nm" "Ports:" "$np"
-        printf "  %-12s %s\n" "Since:" "$(sec_to_dhms "$s_uptime")"
-        echo ""
+        # Prepare variables
+        fw_ver=$(printf "%d.%04d.%04d" "$maj" "$min" "$sub")
+        DASH_WIDTH=78
 
-        # Power
-        echo "${C_Bld}${C_B} $I_PWR POWER SUPPLY${C_N}"
-        echo "${C_B}------------------------------------------------------------${C_N}"
-        p_count=0
-        for i in $psu_idxs; do
-            p_stat=$(c_stat "${ps[$i.pr]}")
-            if [[ "${ps[$i.pr]}" == "OK" ]]; then
-                p_watt="${ps[$i.wt]:-0}W"
-            else
-                p_watt="-"
-            fi
-            printf "  %-6s %b  %-14s" "PSU$i" "$p_stat" "($p_watt)"
-            p_count=$((p_count + 1))
-            [[ $((p_count % 2)) -eq 0 ]] && echo ""
-        done
-        [[ $((p_count % 2)) -ne 0 ]] && echo ""
-        echo ""
-
-        # Thermals & Fans
-        echo "${C_Bld}${C_B} $I_TEMP THERMALS & $I_FAN COOLING${C_N}"
-        echo "${C_B}------------------------------------------------------------${C_N}"
-        
-        # Temp logic
-        t_col=$C_G
-        [[ $tp -ge $twl ]] && t_col=$C_Y
-        [[ $tp -ge $twh ]] && t_col=$C_R
-        
-        # Fans logic
-        f_sum=0; f_cnt=0; f_avg=0
-        for t in ${at_idxs:-}; do 
-            f_sum=$((f_sum + ${fs[$t]:-0}))
-            f_cnt=$((f_cnt + 1))
-        done
-        [[ $f_cnt -gt 0 ]] && f_avg=$((f_sum / f_cnt))
-        f_stat=$(c_stat "${fa:-OK}")
-
-        printf "  %-12s ${t_col}%s°C${C_N} (Max: %s°C)\n" "Temp:" "$tp" "$mt"
-        printf "  %-12s %s RPM (Avg)   Status: %b\n" "Fans:" "$f_avg" "$f_stat"
-        
-        if [[ "$opt_T" == "1" && -n "${qt[*]:-}" ]]; then
-            echo ""
-            echo "  QSFP Modules:"
-            for q in $(seq 1 "$nm"); do
-                printf "  %02d: %s°C " "$q" "${qt[$q]:-0}"
-                [[ $((q % 5)) -eq 0 ]] && echo ""
-            done
-            echo ""
+        # Determine overall status
+        status_txt="OK"
+        if [[ "$fa" != "OK" ]]; then
+            status_txt="CRITICAL"
         fi
-        
+        for i in $psu_idxs; do
+            [[ "${ps[$i.pr]:-}" != "" && "${ps[$i.pr]}" != "OK" ]] && {
+                status_txt="CRITICAL"
+            }
+        done
+        if [[ "$status_txt" == "OK" && "$tp" -ge "$twh" ]]; then
+            status_txt="CRITICAL"
+        elif [[ "$status_txt" == "OK" && "$tp" -ge "$twl" ]]; then
+            status_txt="WARNING"
+        fi
+        status_block_overall=$(status_block "$status_txt")
+
+        # Calculate PSU totals
+        total_w=0
+        for i in $psu_idxs; do
+            p_watt="${ps[$i.wt]:-0}"
+            [[ -n "$p_watt" ]] && total_w=$((total_w + p_watt))
+        done
+
+        # Calculate fan stats
+        fan_count=0
+        fan_min=999999
+        fan_max=0
+        fan_sum=0
+        for t in ${at_idxs:-}; do
+            rpm=${fs[$t]:-0}
+            [[ $rpm -gt 0 ]] && {
+                fan_count=$((fan_count + 1))
+                fan_sum=$((fan_sum + rpm))
+                [[ $rpm -lt $fan_min ]] && fan_min=$rpm
+                [[ $rpm -gt $fan_max ]] && fan_max=$rpm
+            }
+        done
+        [[ $fan_count -gt 0 ]] && fan_avg=$((fan_sum / fan_count)) || fan_avg=0
+        fan_status_block=$(status_block "$fa")
+
+        # Thermal status
+        if [[ $tp -ge $twh ]]; then
+            thermal_status="CRITICAL"
+        elif [[ $tp -ge $twl ]]; then
+            thermal_status="WARNING"
+        else
+            thermal_status="OK"
+        fi
+        thermal_block=$(status_block "$thermal_status")
+
+        # Count active modules
+        mod_active=0
+        mod_min=999
+        mod_max=0
+        if [[ "$opt_T" == "1" ]]; then
+            for q in $(seq 1 "$nm"); do
+                temp=${qt[$q]:-0}
+                if [[ $temp -gt 0 ]]; then
+                    mod_active=$((mod_active + 1))
+                    [[ $temp -lt $mod_min ]] && mod_min=$temp
+                    [[ $temp -gt $mod_max ]] && mod_max=$temp
+                fi
+            done
+        fi
+
+        # Print dashboard
         echo ""
+        print_border "═" "╔" "╗" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+        print_line "$nd                       $cn        $status_block_overall $status_txt" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+        print_line "FW: $fw_ver         Uptime: $(sec_to_dhms "$s_uptime")         P/N: $pn" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+        print_border "═" "╠" "╣" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+        print_line "POWER SUPPLY" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+
+        # PSU bars
+        if [[ -n "${psu_idxs:-}" ]]; then
+            for i in $psu_idxs; do
+                psu_status="${ps[$i.pr]:-N/A}"
+                psu_watts="${ps[$i.wt]:-0}"
+                psu_block=$(status_block "$psu_status")
+                psu_bar=$(progress_bar "$psu_watts" 400 18)
+                print_line "   PSU $i  $psu_block  $psu_bar  $psu_watts W" $DASH_WIDTH
+            done
+            print_line "" $DASH_WIDTH
+            print_line "   Total Power Consumption: $total_w W" $DASH_WIDTH
+        else
+            print_line "   PSU: data unavailable" $DASH_WIDTH
+        fi
+        print_line "" $DASH_WIDTH
+
+        print_border "═" "╠" "╣" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+
+        # If -T option: show THERMAL only, otherwise show THERMAL + COOLING side by side
+        if [[ "$opt_T" != "1" ]]; then
+            print_2col "THERMAL" "COOLING" 38 $DASH_WIDTH
+            print_line "" $DASH_WIDTH
+
+            temp_bar=$(progress_bar "$tp" "$twh" 12)
+            print_2col "   Ambient:   ${tp}C  $temp_bar ${mt}C" "   Status:   $fan_status_block $fa" 38 $DASH_WIDTH
+            print_2col "   Threshold: $thermal_block ${twl}-${twh}C" "   Fans:     $fan_count active" 38 $DASH_WIDTH
+            [[ $mod_active -gt 0 ]] && mod_range_txt="${mod_min}-${mod_max}C" || mod_range_txt="N/A"
+            print_2col "   Modules:   $mod_active/$nm active" "   RPM:      $fan_min - $fan_max" 38 $DASH_WIDTH
+            print_2col "   Range:     $mod_range_txt" "   Average:  $fan_avg rpm" 38 $DASH_WIDTH
+        else
+            print_line "THERMAL" $DASH_WIDTH
+            print_line "" $DASH_WIDTH
+
+            temp_bar=$(progress_bar "$tp" "$twh" 12)
+            print_line "   Ambient:   ${tp}C  $temp_bar ${mt}C" $DASH_WIDTH
+            print_line "   Threshold: $thermal_block ${twl}-${twh}C" $DASH_WIDTH
+            [[ $mod_active -gt 0 ]] && mod_range_txt="(${mod_min}-${mod_max}C)" || mod_range_txt=""
+            print_line "   Modules:   $mod_active/$nm active $mod_range_txt" $DASH_WIDTH
+        fi
+        print_line "" $DASH_WIDTH
+
+        # Show fan details if -T option
+        if [[ "$opt_T" == "1" ]]; then
+            print_border "═" "╠" "╣" $DASH_WIDTH
+            print_line "" $DASH_WIDTH
+            print_line "FAN SPEEDS (RPM)" $DASH_WIDTH
+            print_line "" $DASH_WIDTH
+
+            # Fan grid - 3 columns
+            fan_array=()
+            for t in ${at_idxs:-}; do
+                fan_array+=("$t:${fs[$t]:-0}")
+            done
+
+            for ((i=0; i<${#fan_array[@]}; i+=3)); do
+                IFS=':' read -r f1_idx f1_rpm <<< "${fan_array[$i]}"
+                c1=$(printf "Fan %02d: %6d" "$f1_idx" "$f1_rpm")
+
+                c2=""
+                if [[ $((i+1)) -lt ${#fan_array[@]} ]]; then
+                    IFS=':' read -r f2_idx f2_rpm <<< "${fan_array[$((i+1))]}"
+                    c2=$(printf "Fan %02d: %6d" "$f2_idx" "$f2_rpm")
+                fi
+
+                c3=""
+                if [[ $((i+2)) -lt ${#fan_array[@]} ]]; then
+                    IFS=':' read -r f3_idx f3_rpm <<< "${fan_array[$((i+2))]}"
+                    c3=$(printf "Fan %02d: %6d" "$f3_idx" "$f3_rpm")
+                fi
+
+                print_3col "   $c1" "$c2" "$c3" $DASH_WIDTH
+            done
+            print_line "" $DASH_WIDTH
+
+            # Module temperatures
+            print_border "═" "╠" "╣" $DASH_WIDTH
+            print_line "" $DASH_WIDTH
+            print_line "MODULE TEMPERATURES" $DASH_WIDTH
+            print_line "" $DASH_WIDTH
+
+            # Build array of active modules
+            mod_array=()
+            for q in $(seq 1 "$nm"); do
+                temp=${qt[$q]:-0}
+                [[ $temp -gt 0 ]] && mod_array+=("$q:$temp")
+            done
+
+            # Display in 2 columns
+            for ((i=0; i<${#mod_array[@]}; i+=2)); do
+                IFS=':' read -r m1_id m1_temp <<< "${mod_array[$i]}"
+                bar1=$(progress_bar "$m1_temp" 105 10)
+                col1=$(printf "Module %02d: %2dC  %s" "$m1_id" "$m1_temp" "$bar1")
+
+                col2=""
+                if [[ $((i+1)) -lt ${#mod_array[@]} ]]; then
+                    IFS=':' read -r m2_id m2_temp <<< "${mod_array[$((i+1))]}"
+                    bar2=$(progress_bar "$m2_temp" 105 10)
+                    col2=$(printf "Module %02d: %2dC  %s" "$m2_id" "$m2_temp" "$bar2")
+                fi
+
+                print_2col "   $col1" "$col2" 38 $DASH_WIDTH
+            done
+
+            inactive_count=$((nm - mod_active))
+            [[ $inactive_count -gt 0 ]] && {
+                print_line "" $DASH_WIDTH
+                print_line "   ${C_Dim}$inactive_count modules not connected${C_N}" $DASH_WIDTH
+            }
+            print_line "" $DASH_WIDTH
+        fi
+
+        print_border "═" "╠" "╣" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+        print_line "HARDWARE DETAILS" $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+        print_2col "   S/N:  $sn" "   GUID: $guid" 38 $DASH_WIDTH
+        print_2col "   PSID: $psid" "   CPLD: $cpld" 38 $DASH_WIDTH
+        print_line "" $DASH_WIDTH
+        print_border "═" "╚" "╝" $DASH_WIDTH
+
         exit 0
         ;;
 esac

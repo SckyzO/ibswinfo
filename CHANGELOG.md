@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.8] - 2026-01-14 (Forked Version)
 
 ### Added
-- **Dashboard View:** New `-o dashboard` option providing a colorful and structured CLI dashboard with status indicators (🌡️, ⚡, 💨).
+- **Dashboard View:** New `-o dashboard` option providing a clean CLI dashboard with colored status blocks (██), progress bars, and grid layouts for fans/modules.
 - **JSON Output:** New `-o json` option to export all switch data in a comprehensive JSON format for automation.
 - **Version Flag:** New `-v` argument to display the script version.
 - **CI/CD:** Automated testing workflow with ShellCheck and mock-based tests using real device dumps.
