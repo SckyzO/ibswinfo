@@ -25,14 +25,13 @@ MAX_ND_LEN=64
 VERSION="0.8"
 
 # UI Constants
-C_R=$'\033[0;31m' # Red
-C_G=$'\033[0;32m' # Green
-C_Y=$'\033[0;33m' # Yellow
-C_B=$'\033[0;34m' # Blue
-C_C=$'\033[0;36m' # Cyan
-C_N=$'\033[0m'    # No Color
-C_Bld=$'\033[1m'  # Bold
-C_Dim=$'\033[2m'  # Dim
+C_R=$'\033[0;31m'  # Red
+C_G=$'\033[0;32m'  # Green
+C_Y=$'\033[0;33m'  # Yellow
+C_B=$'\033[0;34m'  # Blue
+C_C=$'\033[0;36m'  # Cyan
+C_N=$'\033[0m'     # No Color
+C_Dim=$'\033[2m'   # Dim
 
 I_OK="${C_G}✔${C_N}"
 I_ERR="${C_R}✘${C_N}"
@@ -187,11 +186,13 @@ mstr_dec() {
 ## -- dashboard functions ----------------------------------------------------
 
 strip_ansi() {
+    # shellcheck disable=SC2001
     echo "$1" | sed 's/\x1b\[[0-9;]*m//g'
 }
 
 visible_len() {
-    local stripped=$(strip_ansi "$1")
+    local stripped
+    stripped=$(strip_ansi "$1")
     echo "${#stripped}"
 }
 
@@ -211,7 +212,8 @@ print_border() {
 print_line() {
     local content="$1"
     local width=${2:-76}
-    local visible=$(visible_len "$content")
+    local visible
+    visible=$(visible_len "$content")
     local padding=$((width - visible))
     printf "║ %s%*s ║\n" "$content" "$padding" ""
 }
@@ -222,8 +224,10 @@ print_2col() {
     local width=${4:-76}
     local sep_pos=${3:-$((width / 2))}
 
-    local left_vis=$(visible_len "$left")
-    local right_vis=$(visible_len "$right")
+    local left_vis
+    local right_vis
+    left_vis=$(visible_len "$left")
+    right_vis=$(visible_len "$right")
     local left_pad=$((sep_pos - left_vis))
     local right_pad=$((width - sep_pos - right_vis))
 
@@ -240,9 +244,12 @@ print_3col() {
     local c2_w=24
     local c3_w=$((width - c1_w - c2_w))
 
-    local c1_vis=$(visible_len "$col1")
-    local c2_vis=$(visible_len "$col2")
-    local c3_vis=$(visible_len "$col3")
+    local c1_vis
+    local c2_vis
+    local c3_vis
+    c1_vis=$(visible_len "$col1")
+    c2_vis=$(visible_len "$col2")
+    c3_vis=$(visible_len "$col3")
 
     local c1_pad=$((c1_w - c1_vis))
     local c2_pad=$((c2_w - c2_vis))
