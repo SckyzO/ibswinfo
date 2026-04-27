@@ -30,7 +30,7 @@ development                     | 0x00000000
 manufacturing_base_mac_47_32    | 0x0000b0cf
 ga                              | 0x00000000
 chip_type                       | 0x00000000
-manufacturing_base_mac_31_0     | 0x0ecc0480
+manufacturing_base_mac_31_0     | 0x0eab1234
 device_ticks_per_msec           | 0x00000000
 uptime                          | 0x003ecec2
 sub_minor                       | 0x00000000
@@ -160,8 +160,8 @@ Sending access register...
 Field Name          | Data    
 =================================
 serial_number[0]    | 0x4d543234
-serial_number[1]    | 0x34315430
-serial_number[2]    | 0x30344636
+serial_number[1]    | 0x30315430
+serial_number[2]    | 0x30444546
 serial_number[3]    | 0x00000000
 serial_number[4]    | 0x00000000
 serial_number[5]    | 0x00000000
@@ -223,11 +223,11 @@ router_entity           | 0x00000000
 swid                    | 0x00000000
 capability_mask         | 0xe550d848
 system_image_guid_h     | 0xb0cf0e03
-system_image_guid_l     | 0x00cc0480
+system_image_guid_l     | 0x00ab1234
 guid0_h                 | 0xb0cf0e03
-guid0_l                 | 0x00cc0480
+guid0_l                 | 0x00ab1234
 node_guid_h             | 0xb0cf0e03
-node_guid_l             | 0x00cc0480
+node_guid_l             | 0x00ab1234
 capability_mask2        | 0x0000043b
 max_pkey                | 0x00000008
 node_description[0]     | 0x69737772
@@ -261,8 +261,8 @@ psu0[1]     | 0x00000002
 psu0[2]     | 0x80000124
 psu0[3]     | 0x00000001
 psu0[4]     | 0x4d543234
-psu0[5]     | 0x34315430
-psu0[6]     | 0x30314630
+psu0[5]     | 0x30315430
+psu0[6]     | 0x30305031
 psu0[7]     | 0x00000000
 psu0[8]     | 0x00000000
 psu0[9]     | 0x00000000
@@ -281,8 +281,8 @@ psu1[1]     | 0x00000002
 psu1[2]     | 0x8000012c
 psu1[3]     | 0x00000001
 psu1[4]     | 0x4d543234
-psu1[5]     | 0x34315430
-psu1[6]     | 0x30314554
+psu1[5]     | 0x30315430
+psu1[6]     | 0x30305032
 psu1[7]     | 0x00000000
 psu1[8]     | 0x00000000
 psu1[9]     | 0x00000000

@@ -35,7 +35,7 @@ development                     | 0x00000000
 manufacturing_base_mac_47_32    | 0x00000800
 ga                              | 0x00000000
 chip_type                       | 0x00000000
-manufacturing_base_mac_31_0     | 0x38c5bf00
+manufacturing_base_mac_31_0     | 0x38ab1200
 device_ticks_per_msec           | 0x00000000
 uptime                          | 0x0007a567
 sub_minor                       | 0x00000000
@@ -161,8 +161,8 @@ Sending access register...
 
 Field Name          | Data
 =================================
-serial_number[0]    | 0x4a303235
-serial_number[1]    | 0x31363031
+serial_number[0]    | 0x4a393939
+serial_number[1]    | 0x39393939
 serial_number[2]    | 0x4a000000
 serial_number[3]    | 0x00000000
 serial_number[4]    | 0x00000000
@@ -226,11 +226,11 @@ router_entity           | 0x00000000
 swid                    | 0x00000000
 capability_mask         | 0xe550d848
 system_image_guid_h     | 0x08003803
-system_image_guid_l     | 0x00c5bf00
+system_image_guid_l     | 0x0012ab12
 guid0_h                 | 0x08003803
-guid0_l                 | 0x00c5bf00
+guid0_l                 | 0x0012ab12
 node_guid_h             | 0x08003803
-node_guid_l             | 0x00c5bf00
+node_guid_l             | 0x0012ab12
 capability_mask2        | 0x0000043b
 max_pkey                | 0x00000008
 node_description[0]     | 0x22615c62

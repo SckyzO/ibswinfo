@@ -26,7 +26,7 @@ hw_dev_id                       | 0x0000024d
 manufacturing_base_mac_47_32    | 0x0000a088
 ga                              | 0x00000000
 chip_type                       | 0x00000000
-manufacturing_base_mac_31_0     | 0xc25f3d76
+manufacturing_base_mac_31_0     | 0xab12cd34
 uptime                          | 0x006c3edc
 sub_minor                       | 0x00000000
 minor                           | 0x00000000
@@ -145,9 +145,9 @@ Sending access register...
 
 Field Name          | Data    
 =================================
-serial_number[0]    | 0x4d543233
-serial_number[1]    | 0x33355430
-serial_number[2]    | 0x30423233
+serial_number[0]    | 0x4d543234
+serial_number[1]    | 0x30305430
+serial_number[2]    | 0x30414243
 serial_number[3]    | 0x00000000
 serial_number[4]    | 0x00000000
 serial_number[5]    | 0x00000000
@@ -199,9 +199,9 @@ psu0[0]     | 0x50000010
 psu0[1]     | 0x00000002
 psu0[2]     | 0x800000bb
 psu0[3]     | 0x00000001
-psu0[4]     | 0x4d543233
-psu0[5]     | 0x33355430
-psu0[6]     | 0x30335436
+psu0[4]     | 0x4d543234
+psu0[5]     | 0x30305430
+psu0[6]     | 0x30305031
 psu0[7]     | 0x00000000
 psu0[8]     | 0x00000000
 psu0[9]     | 0x00000000
@@ -219,9 +219,9 @@ psu1[0]     | 0x50000010
 psu1[1]     | 0x00000002
 psu1[2]     | 0x800000a4
 psu1[3]     | 0x00000001
-psu1[4]     | 0x4d543233
-psu1[5]     | 0x33355430
-psu1[6]     | 0x30335437
+psu1[4]     | 0x4d543234
+psu1[5]     | 0x30305430
+psu1[6]     | 0x30305032
 psu1[7]     | 0x00000000
 psu1[8]     | 0x00000000
 psu1[9]     | 0x00000000
