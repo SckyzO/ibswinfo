@@ -538,7 +538,16 @@ _regs=$(for r in $reg_names; do
 for r in $reg_names; do reg[$r]=""; done
 while read -r r v; do
     o=${v//@/$'\n'}
-    [[ "$o" =~ -E- ]] && [[ $r != MGPIR ]] && err "${o/-E-/}"
+    if [[ "$o" =~ -E- ]] && [[ $r != MGPIR ]]; then
+        # Register read failed (firmware does not support it, MFT version
+        # mismatch, missing index, etc.). Warn and skip; downstream parsing
+        # already tolerates empty registers (htod defaults to 0, out_kv
+        # silently drops empty values). Avoids a hard exit for non-critical
+        # registers that older firmwares cannot serve.
+        err_msg=$(sed -n 's/^-E-[[:space:]]*\(.*\)/\1/p' <<< "$o" | head -1)
+        warn "register $r unavailable: ${err_msg:-unknown error}, skipping"
+        continue
+    fi
     reg[$r]=$o
 done <<< "$_regs"
 

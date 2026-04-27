@@ -92,7 +92,44 @@ run_tests_for_dump() {
         echo "FAILED (Dashboard output mismatch)"
         return 1
     fi
-    
+
+    # Test graceful handling of unsupported registers (Issue #1).
+    # The FW-LIMITED fixture intentionally injects "-E- FW burnt..." on MSCI;
+    # the script must exit 0, emit a warning on stderr, and still produce
+    # parsable output for the registers that did succeed.
+    if [[ "$(basename "$dump_file")" == "ibsw_dump_LID42_FW-LIMITED.txt" ]]; then
+        echo -n "  [FW-burnt] "
+        local fwb_stdout fwb_stderr fwb_rc
+        local fwb_out_file fwb_err_file
+        fwb_out_file=$(mktemp)
+        fwb_err_file=$(mktemp)
+        "$REPO_DIR/ibswinfo.sh" -d "$device_arg" > "$fwb_out_file" 2> "$fwb_err_file"
+        fwb_rc=$?
+        fwb_stdout=$(cat "$fwb_out_file")
+        fwb_stderr=$(cat "$fwb_err_file")
+        rm "$fwb_out_file" "$fwb_err_file"
+
+        if [[ $fwb_rc -ne 0 ]]; then
+            echo "FAILED (exit code $fwb_rc, expected 0)"
+            echo "--- STDERR ---"
+            echo "$fwb_stderr"
+            return 1
+        fi
+        if [[ "$fwb_stderr" != *"warning: register MSCI unavailable"* ]]; then
+            echo "FAILED (no warning emitted for unsupported MSCI register)"
+            echo "--- STDERR ---"
+            echo "$fwb_stderr"
+            return 1
+        fi
+        if [[ "$fwb_stdout" != *"part number"* ]]; then
+            echo "FAILED (stdout missing expected fields after register skip)"
+            echo "--- STDOUT ---"
+            echo "$fwb_stdout"
+            return 1
+        fi
+        echo "OK"
+    fi
+
     return 0
 }
 
