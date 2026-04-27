@@ -93,6 +93,49 @@ run_tests_for_dump() {
         return 1
     fi
 
+    # Test infiniband_exporter compatibility.
+    # The exporter (collectors/ibswinfo.go in treydock/infiniband_exporter)
+    # invokes the script with `-d lid-<N>` (no -o flag) and parses the
+    # default key|value table. Any change to the default output format
+    # MUST keep these key prefixes intact, or the exporter silently loses
+    # metrics. This test guards the contract.
+    #
+    # The exporter uses prefix matching (e.g. "uptime" matches the actual
+    # key "uptime (d-h:m:s)"), so we do the same here: split each line on
+    # "|", trim the first field, and check it starts with the expected key.
+    echo -n "  [exporter]  "
+    local ec_out ec_missing=()
+    ec_out=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" 2>/dev/null)
+    local ec_keys=(
+        'part number'
+        'serial number'
+        'PSID'
+        'firmware version'
+        'uptime'
+        'temperature (C)'
+        'fan status'
+    )
+    local k k_found
+    for k in "${ec_keys[@]}"; do
+        k_found=$(awk -F'|' -v k="$k" '
+            {
+                key = $1
+                gsub(/^[ \t]+|[ \t]+$/, "", key)
+                if (index(key, k) == 1) { print "yes"; exit }
+            }
+        ' <<< "$ec_out")
+        if [[ "$k_found" != "yes" ]]; then
+            ec_missing+=("$k")
+        fi
+    done
+    if [[ ${#ec_missing[@]} -gt 0 ]]; then
+        echo "FAILED (missing exporter-required keys: ${ec_missing[*]})"
+        echo "--- DEFAULT OUTPUT ---"
+        echo "$ec_out"
+        return 1
+    fi
+    echo "OK"
+
     # Test graceful handling of unsupported registers (Issue #1).
     # The FW-LIMITED fixture intentionally injects "-E- FW burnt..." on MSCI;
     # the script must exit 0, emit a warning on stderr, and still produce
