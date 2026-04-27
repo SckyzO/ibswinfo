@@ -15,8 +15,9 @@
 #
 #==============================================================================
 
-set -e      # stop on error
-set -u      # stop on uninitialized variable
+set -e              # stop on error
+set -u              # stop on uninitialized variable
+set -o pipefail     # propagate pipeline failures (any stage, not just last)
 
 ## -- constants ---------------------------------------------------------------
 
@@ -110,7 +111,7 @@ htos() {
     local h=$*
     local s
     s=$(sed 's/0x\|[[:space:]]//g; s/\(..\)/\\x\1/g' <<< "$h")
-    printf "%b\n" "$s" | tr -d \\0
+    printf "%b\n" "$s" | tr -d '\0'
 }
 
 # string to hex array (split and padded)
@@ -402,9 +403,9 @@ while getopts "$optspec" optchar; do
                 err "description string > $MAX_ND_LEN characters"
             }
             ;;
-	y)
+        y)
             opt_y=1
-	    ;;
+            ;;
     esac
 done
 
@@ -454,7 +455,7 @@ if [[ -z "$dev" && "$opt_A" == "1" ]]; then
 fi
 
 # drop -T for inventory/status outputs
-[[ "$out" =~ inventory|status ]] && opt_T=0
+[[ "$out" =~ ^(inventory|status)$ ]] && opt_T=0
 
 # check conflicting options
 [[ -n "$desc" ]] && [[ -n "$out" || "$opt_T" -eq 1 ]] && {
@@ -485,7 +486,6 @@ mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 mft_req="4.18.0"      # minimum required MFT version
 mft_req_desc="4.22.0" # minimum required MFT version to set device name
 mft_max="4.33.0"      # highest MFT version tested
-mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 [[ ${mft_cur//./} -lt ${mft_req//./} ]] && \
     err "MFT version must be >= $mft_req (current version is $mft_cur)"
 [[ "$desc" != "" ]] && [[ ${mft_cur//./} -lt ${mft_req_desc//./} ]] && \
@@ -499,7 +499,7 @@ mft_cur=$(mst version | awk '{gsub(/,/,""); print $3}' | cut -d- -f1)
 [[ ${dev:0:4} != "lid-" ]] && {
     [[ ${dev:0:8} == '/dev/mst' ]] && dev=${dev/\/dev\/mst\//}
     [[ ${dev:0:3} == "SW_" ]] || err "$dev doesn't look like a switch device name"
-    [[ -r /dev/mst/$dev ]] || err "$dev not found in /dev/mst, is mst started?"
+    [[ -r "/dev/mst/$dev" ]] || err "$dev not found in /dev/mst, is mst started?"
 }
 
 
@@ -585,7 +585,7 @@ done <<< "$_regs"
     echo "  Current node description: $cur_nd"
     echo "  Set node description to : $desc"
     [[ "$opt_y" == "0" ]] && {
-        read -p ">> Confirm? (y/N) " -n 1 -r
+        read -r -p ">> Confirm? (y/N) " -n 1
         echo
         [[ $REPLY =~ ^[Yy]$ ]] || exit 1
     }
@@ -620,7 +620,10 @@ done <<< "$_regs"
 # extract data from register values
 # inventory
 [[ ! "$out" =~ status|vitals ]] && {
-    # part/serial number
+    # part/serial number. The "roduct_name" pattern (missing leading "p")
+    # is intentional: mstr_dec uses regex matching, so this matches
+    # "product_name" without conflicting with "manufacturing_..." or
+    # similar prefixed fields.
     pn=$(mstr_dec "part_number"   MSGI)
     sn=$(mstr_dec "serial_number" MSGI)
     cn=$(mstr_dec "roduct_name"   MSGI)
@@ -638,7 +641,6 @@ done <<< "$_regs"
     cpld=$(htod "$(awk '/^version / {printf $NF}' <<< "${reg[MSCI]}")")
 
     # node description
-    #shellcheck disable=SC2046
     nd=$(mstr_dec "node_description" SPZR)
     guid=$(awk '/^node_guid/ {gsub(/0x/,"",$NF); g=g$NF} END {print "0x"g}' \
           <<< "${reg[SPZR]}")
