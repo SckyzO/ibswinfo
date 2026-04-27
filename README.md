@@ -147,6 +147,22 @@ Misc:
   -h                      show this help
 ```
 
+### New in v0.9.0
+
+*   **Chassis-managed PSU detection:** switches that draw power from a
+    chassis sideband (e.g. Bull/Atos Sequana3 water-cooled) report all-zero
+    `MSPS` blocks. Instead of labelling every imaginary PSU as `ERROR`, the
+    script now emits a single `PSU | N/A (chassis-managed)` line. JSON gains
+    a `status.chassis_managed: true` flag. Detection is hardware-agnostic
+    (no PSID matching), so any vendor with the same topology is handled.
+*   **Race condition fixed in parallel register reads:** verbose registers
+    (`MGIR`, ~100 fields) used to silently corrupt each other when their
+    parallel-collected output exceeded `PIPE_BUF` (~4 KiB). Each register
+    is now isolated in its own temp file. Empirically, the test suite
+    failure rate dropped from 25-33% to 0% across 24 consecutive runs.
+*   **Bash hygiene:** `set -o pipefail`, quoting fixes, regex anchors,
+    cleanup of dead/duplicated code.
+
 ### New in v0.8.1
 
 *   **Resilience to older firmwares:** Switches whose firmware does not
