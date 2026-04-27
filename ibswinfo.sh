@@ -148,6 +148,23 @@ sec_to_dhms() {
                                   $((s%60))
 }
 
+# escape a string for safe inclusion as a JSON string value.
+# Handles backslash, double-quote, and standard control characters
+# (\b \f \n \r \t). Other control bytes (0x00-0x1F) are passed through;
+# switch fields are not expected to contain them.
+# Order matters: backslash must be escaped first.
+json_escape() {
+    local s=$1
+    s=${s//\\/\\\\}
+    s=${s//\"/\\\"}
+    s=${s//$'\b'/\\b}
+    s=${s//$'\f'/\\f}
+    s=${s//$'\n'/\\n}
+    s=${s//$'\r'/\\r}
+    s=${s//$'\t'/\\t}
+    printf '%s' "$s"
+}
+
 # get register values
 #  $1: reg name
 #  $2: indexes (optional)
@@ -782,11 +799,38 @@ case $out in
         ;;
 
     json)
-        # Construct JSON output
-        echo -n "{\"node_description\":\"$nd\",\"inventory\":{\"part_number\":\"$pn\",\"serial\":\"$sn\",\"product_name\":\"$cn\",\"revision\":\"$rv\",\"psid\":\"$psid\",\"guid\":\"$guid\",\"fw_version\":\"$(printf "%d.%04d.%04d" "$maj" "$min" "$sub")\",\"cpld\":$cpld,\"psus\":["
-        first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "{\"id\":$i,\"part_number\":\"${ps[$i.pn]}\",\"serial\":\"${ps[$i.sn]}\"}"; first=0; done
-        echo -n "]},\"status\":{\"fans\":\"$fa\",\"psus\":["
-        first=1; for i in $psu_idxs; do [[ $first -eq 0 ]] && echo -n ","; echo -n "{\"id\":$i,\"status\":\"${ps[$i.pr]}\",\"dc\":\"${ps[$i.dc]}\",\"fan\":\"${ps[$i.fs]}\"}"; first=0; done
+        # Construct JSON output. All string values flow through json_escape()
+        # to neutralize backslashes, double quotes, and control characters
+        # that would otherwise break downstream JSON parsers (jq, Prometheus
+        # exporters, ...). Numeric values are emitted as-is.
+        fw_str=$(printf "%d.%04d.%04d" "$maj" "$min" "$sub")
+        echo -n "{\"node_description\":\"$(json_escape "$nd")\""
+        echo -n ",\"inventory\":{\"part_number\":\"$(json_escape "$pn")\""
+        echo -n ",\"serial\":\"$(json_escape "$sn")\""
+        echo -n ",\"product_name\":\"$(json_escape "$cn")\""
+        echo -n ",\"revision\":\"$(json_escape "$rv")\""
+        echo -n ",\"psid\":\"$(json_escape "$psid")\""
+        echo -n ",\"guid\":\"$(json_escape "$guid")\""
+        echo -n ",\"fw_version\":\"$(json_escape "$fw_str")\""
+        echo -n ",\"cpld\":$cpld,\"psus\":["
+        first=1
+        for i in $psu_idxs; do
+            [[ $first -eq 0 ]] && echo -n ","
+            echo -n "{\"id\":$i"
+            echo -n ",\"part_number\":\"$(json_escape "${ps[$i.pn]}")\""
+            echo -n ",\"serial\":\"$(json_escape "${ps[$i.sn]}")\"}"
+            first=0
+        done
+        echo -n "]},\"status\":{\"fans\":\"$(json_escape "$fa")\",\"psus\":["
+        first=1
+        for i in $psu_idxs; do
+            [[ $first -eq 0 ]] && echo -n ","
+            echo -n "{\"id\":$i"
+            echo -n ",\"status\":\"$(json_escape "${ps[$i.pr]}")\""
+            echo -n ",\"dc\":\"$(json_escape "${ps[$i.dc]}")\""
+            echo -n ",\"fan\":\"$(json_escape "${ps[$i.fs]}")\"}"
+            first=0
+        done
         echo -n "]},\"vitals\":{\"uptime_sec\":$s_uptime,\"temp_c\":$tp,\"max_temp_c\":$mt,\"temp_thresholds\":{\"low\":$twl,\"high\":$twh},\"fans_rpm\":{"
         first=1; for t in ${at_idxs:-}; do [[ $first -eq 0 ]] && echo -n ","; echo -n "\"fan_$t\":${fs[$t]}"; first=0; done
         echo -n "},\"psu_power_w\":{"

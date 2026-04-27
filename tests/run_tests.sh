@@ -130,6 +130,55 @@ run_tests_for_dump() {
         echo "OK"
     fi
 
+    # Test JSON output safety against special characters (Issue #3).
+    # The JSON-SPECIAL fixture has a node_description containing " and \,
+    # which would break naive interpolation. Verify the output parses as
+    # valid JSON and that the node_description round-trips intact.
+    if [[ "$(basename "$dump_file")" == "ibsw_dump_LID77_JSON-SPECIAL.txt" ]]; then
+        echo -n "  [JSON-safe] "
+        local js_out js_parsed
+        js_out=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o json 2>/dev/null)
+
+        # Pick a JSON validator: prefer jq, fall back to python3.
+        local validator=""
+        if command -v jq >/dev/null 2>&1; then
+            validator="jq"
+        elif command -v python3 >/dev/null 2>&1; then
+            validator="python3"
+        else
+            echo "SKIPPED (no jq or python3 available)"
+            return 0
+        fi
+
+        if [[ "$validator" == "jq" ]]; then
+            if ! echo "$js_out" | jq -e . >/dev/null 2>&1; then
+                echo "FAILED (jq could not parse JSON)"
+                echo "--- OUTPUT ---"
+                echo "$js_out"
+                return 1
+            fi
+            js_parsed=$(echo "$js_out" | jq -r .node_description)
+        else
+            if ! echo "$js_out" | python3 -c 'import json,sys; json.loads(sys.stdin.read())' 2>/dev/null; then
+                echo "FAILED (python3 could not parse JSON)"
+                echo "--- OUTPUT ---"
+                echo "$js_out"
+                return 1
+            fi
+            js_parsed=$(echo "$js_out" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["node_description"])')
+        fi
+
+        # The fixture encodes the literal string  "a\b"c  in the node
+        # description hex blocks. Confirm round-trip integrity.
+        if [[ "$js_parsed" != '"a\b"c' ]]; then
+            printf '%s\n'   'FAILED (node_description round-trip mismatch)'
+            printf '  got:      [%s]\n' "$js_parsed"
+            printf '%s\n'   '  expected: ["a\b"c]'
+            return 1
+        fi
+        echo "OK ($validator)"
+    fi
+
     return 0
 }
 
