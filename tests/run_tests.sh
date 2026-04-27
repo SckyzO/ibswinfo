@@ -171,7 +171,9 @@ run_tests_for_dump() {
         # The fixture encodes the literal string  "a\b"c  in the node
         # description hex blocks. Confirm round-trip integrity.
         if [[ "$js_parsed" != '"a\b"c' ]]; then
-            echo "FAILED (node_description round-trip mismatch: got '$js_parsed', expected '\"a\\b\"c')"
+            printf '%s\n'   'FAILED (node_description round-trip mismatch)'
+            printf '  got:      [%s]\n' "$js_parsed"
+            printf '%s\n'   '  expected: ["a\b"c]'
             return 1
         fi
         echo "OK ($validator)"
