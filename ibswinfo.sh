@@ -22,7 +22,7 @@ set -u      # stop on uninitialized variable
 
 MFT_URL="https://www.mellanox.com/products/adapter-software/firmware-tools"
 MAX_ND_LEN=64
-VERSION="0.8"
+VERSION="0.8.1"
 
 # UI Constants
 C_R=$'\033[0;31m'  # Red
