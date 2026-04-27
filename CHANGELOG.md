@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-04-27
+
+### Added
+- **Chassis-managed PSU detection (#5, #12).** Switches that are sideband-fed from a chassis (e.g. Bull/Atos Sequana3, water-cooled HDR400) report `MSPS` blocks containing only zeros because they have no local PSUs. The previous decoder labelled every imaginary PSU as `ERROR`, which was misleading on healthy hardware. The script now detects this case and emits a single informative line (`PSU | N/A (chassis-managed)`) instead. The JSON output gains a `status.chassis_managed: true` flag and the dashboard renders an INFO-coloured block. Detection is hardware-agnostic (based on MSPS being all-zeros), so any vendor with the same topology is handled automatically.
+- **`infiniband_exporter` compatibility assertion in the test suite.** A new `[exporter]` check runs the script with `-d lid-<N>` (no `-o`, the way the exporter invokes it) and verifies the default key|value table contains every key parsed by `parse_ibswinfo`. Guards the output contract against future regressions.
+- **Real-hardware Sequana3 fixture.** `tests/dumps/ibsw_dump_LID6_Sequana3-IB400.txt` covers a Bull/Atos OEM HDR400 switch with PSID `BL_*`, the first chassis-managed device in the suite. MFT 4.32.0 also fills a gap between the existing 4.26.1 and 4.33.0 fixtures.
+
+### Fixed
+- **Race condition in parallel register reads (#5, #13).** The previous design captured the parallel subshells' combined stdout into a single variable, joined per-register via `paste -s -d '@'`. That joined "line" routinely exceeded `PIPE_BUF` (~4 KiB) for verbose registers like `MGIR` (~100 fields), so concurrent writes from sibling subshells could interleave bytes inside the captured output — silently corrupting the affected register. Each subshell now writes to its own temp file (`/tmp/ibswinfo-XXXXXX/<reg>`); we `wait` for them and then read back in order. Empirically observed corruption rate dropped from ~25-33% to 0% across 24 consecutive test-suite runs. Throughput preserved (~200 ms per invocation), so 200-switch fleets scraped via `infiniband_exporter` are unaffected by the fix.
+
+### Changed
+- **Bash hygiene pass (#5, #11).** Added `set -o pipefail`, fixed an unquoted `$dev` in a path test, normalised mixed tabs/spaces in the `case y)` arm, anchored a regex in `[[ "$out" =~ ... ]]`, removed a duplicate `mft_cur=$(mst version | ...)` assignment, cleaned up a `tr -d \\0` quoting, reordered `read -p ... -r` to ShellCheck-conventional order, documented the intentional `roduct_name` regex trick, and dropped an unjustified `# shellcheck disable=SC2046`. No behaviour change for any existing supported scenario; verified by the new `[exporter]` assertion.
+- **Redacted serial numbers, MACs and GUIDs in test fixtures (#14).** The seven dumps in `tests/dumps/` were captured from real switches and their identifying hardware values had ended up in this public fork. Replaced with format-preserving fakes (vendor OUI prefixes kept, lower bytes randomized; same source value -> same fake across derived fixtures). Part numbers, model codes, PSIDs, product names and node descriptions remain.
+
+### Hardware coverage
+- **Tested** (real-hardware dumps in `tests/dumps/`): MQM8790 Quantum HDR, MQM9790 Quantum2 NDR, Sequana3 Unmng IB 400 (Bull/Atos OEM HDR400, water-cooled chassis-integrated). MFT versions 4.26.1, 4.32.0, 4.33.0.
+
 ## [0.8.1] - 2026-04-27
 
 ### Fixed
