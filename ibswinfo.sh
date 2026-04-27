@@ -554,14 +554,33 @@ rid[MSCI]+="index=0x0" # handle main CPLD only
 rid[SPZR]+="swid=0x0"
 rid[MTMP]+="sensor_index=0x0${add_idx:+,$add_idx}${add_tmp_idx:+,$add_tmp_idx}"
 rid[MTCAP]="$add_idx"
-# get registers
-_regs=$(for r in $reg_names; do
-            echo "$r" "$(get_reg "$r" "${rid[$r]:-}" |& paste -s -d '@')" &
-        done)
+# Read registers in parallel, but isolate each register's output in its
+# own temp file. The previous design captured the parallel subshells'
+# combined stdout into a single variable, joined per-register via
+# `paste -s -d '@'`. That joined "line" routinely exceeded PIPE_BUF
+# (~4 KiB on Linux) for verbose registers like MGIR (~100 fields), so
+# concurrent writes from sibling subshells could interleave bytes
+# inside the captured output. The corruption was silent — the affected
+# register's content showed up garbled (or empty) in `reg[]`, and the
+# downstream awks would just fail to match and produce empty fields.
+# Symptom: ~25% of test runs failed with "Part Number not found",
+# random across MSGI/MGIR/SPZR. With per-file isolation each register
+# gets its own write path, so atomicity is no longer a concern.
+# Prefix the tempdir name so leftover dirs from a kill -9 (trap doesn't
+# fire) are easy to identify and reap with e.g.
+#   find /tmp -maxdepth 1 -name 'ibswinfo-*' -mtime +1 -delete
+reg_tmpdir=$(mktemp -d -t ibswinfo-XXXXXX)
+trap 'rm -rf "$reg_tmpdir"' EXIT
+
+for r in $reg_names; do
+    get_reg "$r" "${rid[$r]:-}" > "$reg_tmpdir/$r" 2>&1 &
+done
+wait
+
 # store them
-for r in $reg_names; do reg[$r]=""; done
-while read -r r v; do
-    o=${v//@/$'\n'}
+for r in $reg_names; do
+    reg[$r]=""
+    o=$(< "$reg_tmpdir/$r")
     if [[ "$o" =~ -E- ]] && [[ $r != MGPIR ]]; then
         # Register read failed (firmware does not support it, MFT version
         # mismatch, missing index, etc.). Warn and skip; downstream parsing
@@ -573,7 +592,10 @@ while read -r r v; do
         continue
     fi
     reg[$r]=$o
-done <<< "$_regs"
+done
+
+rm -rf "$reg_tmpdir"
+trap - EXIT
 
 
 ## -- node description mgmt ---------------------------------------------------
