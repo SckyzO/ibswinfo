@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.1] - 2026-04-27
+
+### Fixed
+- **Graceful handling of unsupported registers on older firmware (#1, #6).** Switches whose firmware cannot serve some MFT registers (typically returning `-E- FW burnt on device does not support generic access register`) no longer cause the script to abort with `exit 1`. The script now warns on stderr and continues with empty data for the unavailable register; downstream parsing already tolerates missing values. Resolves the long-standing integration failure with `infiniband_exporter` where affected switches produced no metrics at all.
+- **Dependency check uses correct MFT binary names (#2, #7).** The startup check now looks for `mlxreg_ext` (what the script actually calls) instead of the legacy `mlxreg`. Recent MFT releases ship `mlxreg_ext` only, so the previous check was a false positive. The unused `smpquery` dependency has also been removed.
+- **JSON output now properly escapes special characters (#3, #8).** A new `json_escape()` helper neutralizes backslashes, double quotes, and standard control characters in every string value. Previously, a switch with a node description containing `"` or `\` produced invalid JSON that broke `jq`, Prometheus exporters, and any downstream parser.
+- **Empty `-S` argument is rejected (#4, #9).** Running `ibswinfo -d <device> -S ""` no longer corrupts the node description: it left `node_description[0]` untouched while zeroing slots `[1]`..`[15]`. The empty case now fails fast with a clear error message.
+
+### Added
+- New test fixtures in `tests/dumps/`:
+  - `ibsw_dump_LID6_Sequana3-IB400.txt`: real-hardware dump from a Bull/Atos Sequana3 chassis switch (PSID `BL_12002101`, MFT 4.32.0). First HDR400 OEM and chassis-managed fixture in the suite.
+  - `ibsw_dump_LID42_FW-LIMITED.txt`: synthetic fixture for the unsupported-register error path (Issue #1).
+  - `ibsw_dump_LID77_JSON-SPECIAL.txt`: synthetic fixture with `"` and `\` in `node_description` for JSON-safety testing (Issue #3).
+- New explicit test assertions in `tests/run_tests.sh`: `[FW-burnt]`, `[JSON-safe]` (with `jq` / `python3` fallback), and `[empty -S]`.
+
+### Changed
+- `tests/bin/mlxreg_ext` mock: error blocks (`-E-`) are now correctly propagated to the caller. Previously, a bug in the mock's `awk` parser silently swallowed them, hiding the unsupported-register failure mode from the test suite.
+
+### Hardware coverage
+- **Tested** (real-hardware dumps in `tests/dumps/`): MQM8790 Quantum HDR, MQM9790 Quantum2 NDR, Sequana3 Unmng IB 400 (Bull/Atos OEM, HDR400, water-cooled chassis-integrated).
+
 ## [0.8] - 2026-01-14 (Forked Version)
 
 ### Added

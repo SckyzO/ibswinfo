@@ -84,14 +84,24 @@ the NVIDIA Software Tools service, or by LID.
   as 0_)
 * SB7890 Switch-IB2 (EDR)
 * QM8790 Quantum (HDR)
+* QM9790 Quantum2 (NDR)
+* Sequana3 Unmng IB 400 (Bull/Atos OEM, HDR400, water-cooled chassis-integrated)
 
 Limited support is also available for the managed version of those switches:
 * SB7800 Switch-IB2 (EDR)
 * QM8700 Quantum (HDR)
 
 > [!NOTE]
+> Chassis-integrated switches (e.g. Sequana3) are powered through a chassis-level
+> sideband and have no local PSUs. The MSPS register returns all-zero blocks on
+> these models, which the current PSU decoder reports as `PSU0/1 status: ERROR`.
+> This is expected behavior — the chassis power supplies are managed by the
+> chassis controller (HMC/BMC), not the switch firmware. A nicer "N/A
+> (chassis-managed)" output is on the roadmap (see issue #5).
+
+> [!NOTE]
 > If you find other working models, please feel free to open an
-[issue](https://github.com/stanford-rc/ibswinfo/issues/new) and
+[issue](https://github.com/SckyzO/ibswinfo/issues/new) and
 we'll complete the list.
 
 
@@ -136,6 +146,23 @@ Misc:
   -v                      show version
   -h                      show this help
 ```
+
+### New in v0.8.1
+
+*   **Resilience to older firmwares:** Switches whose firmware does not
+    support some MFT registers (typically returning `FW burnt on device does
+    not support generic access register`) no longer cause the script to abort.
+    The script now warns on stderr and continues with whatever data it could
+    read. This fixes `infiniband_exporter` integration on heterogeneous
+    fleets where some switches have limited firmware capabilities.
+*   **Safer JSON output:** the `-o json` output now properly escapes special
+    characters (`"`, `\`, control characters) in field values. Previously,
+    a switch with a node description containing a quote produced invalid JSON.
+*   **Cleaner dependency check:** the script now correctly looks for
+    `mlxreg_ext` (instead of the legacy `mlxreg`) and no longer requires
+    `smpquery` (which was unused).
+*   **Stricter `-S` validation:** running `-S ""` is now rejected up-front
+    instead of silently leaving the switch's name half-cleared.
 
 ### New in v0.8
 
