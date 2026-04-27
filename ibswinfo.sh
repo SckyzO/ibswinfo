@@ -449,8 +449,7 @@ tools[sed]=""
 tools[tr]="coreutils"
 tools[paste]="coreutils"
 tools[mst]="MFT ($MFT_URL)"
-tools[mlxreg]="MFT ($MFT_URL)"
-tools[smpquery]="infiniband-diags"
+tools[mlxreg_ext]="MFT ($MFT_URL)"
 for t in "${!tools[@]}"; do
     type "$t" &>/dev/null || \
         err "$t not found${tools[$t]:+, please install ${tools[$t]}}"
