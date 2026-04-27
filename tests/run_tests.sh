@@ -136,6 +136,49 @@ run_tests_for_dump() {
     fi
     echo "OK"
 
+    # Test chassis-managed PSU detection (PR D, v0.9.0).
+    # The Sequana3 fixture has MSPS returning all-zero psu blocks because
+    # the switch is sideband-fed from the chassis with no local PSUs.
+    # The script must report "N/A (chassis-managed)" instead of producing
+    # bogus PSU-ERROR lines, AND must NOT emit "PSU<N> status" lines that
+    # the exporter would consume as real metrics.
+    if [[ "$(basename "$dump_file")" == "ibsw_dump_LID6_Sequana3-IB400.txt" ]]; then
+        echo -n "  [chassis]   "
+        local cm_default cm_status cm_json
+        cm_default=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" 2>/dev/null)
+        cm_status=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o status 2>/dev/null)
+        cm_json=$("$REPO_DIR/ibswinfo.sh" -d "$device_arg" -o json 2>/dev/null)
+
+        # 1. Default output should show the chassis-managed line, NOT the
+        #    misleading per-PSU ERROR breakdown.
+        if [[ "$cm_default" != *"PSU                | N/A (chassis-managed)"* ]]; then
+            echo "FAILED (default output missing 'PSU | N/A (chassis-managed)' line)"
+            return 1
+        fi
+        if grep -qE "^PSU[0-9]+ status" <<< "$cm_default"; then
+            echo "FAILED (default output still emits per-PSU status lines)"
+            return 1
+        fi
+
+        # 2. -o status should also report chassis, no per-PSU rows.
+        if [[ "$cm_status" != *"psu                : N/A (chassis-managed)"* ]]; then
+            echo "FAILED (-o status missing chassis-managed line)"
+            return 1
+        fi
+
+        # 3. JSON should have chassis_managed=true and empty psus array.
+        if command -v jq >/dev/null 2>&1; then
+            local cm_flag cm_psu_count
+            cm_flag=$(jq -r '.status.chassis_managed' <<< "$cm_json")
+            cm_psu_count=$(jq -r '.status.psus | length' <<< "$cm_json")
+            if [[ "$cm_flag" != "true" || "$cm_psu_count" != "0" ]]; then
+                echo "FAILED (JSON: chassis_managed=$cm_flag, psus.length=$cm_psu_count)"
+                return 1
+            fi
+        fi
+        echo "OK"
+    fi
+
     # Test graceful handling of unsupported registers (Issue #1).
     # The FW-LIMITED fixture intentionally injects "-E- FW burnt..." on MSCI;
     # the script must exit 0, emit a warning on stderr, and still produce
