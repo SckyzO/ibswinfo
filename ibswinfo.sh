@@ -390,6 +390,14 @@ while getopts "$optspec" optchar; do
             ;;
         S)
             desc=${OPTARG}
+            # An empty description must be rejected up-front: the write
+            # path below would otherwise leave node_description[0]
+            # uninitialized while zeroing slots [1]..[15], leaving the
+            # switch in an inconsistent state. If clearing a description
+            # is ever needed, that should be a dedicated explicit flag.
+            [[ -z "$desc" ]] && {
+                err "description string cannot be empty"
+            }
             [[ ${#desc} -gt $MAX_ND_LEN ]] && {
                 err "description string > $MAX_ND_LEN characters"
             }

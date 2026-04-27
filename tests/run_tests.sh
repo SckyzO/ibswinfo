@@ -201,6 +201,26 @@ if [[ $count -eq 0 ]]; then
     exit 1
 fi
 
+# Global CLI-validation tests (dump-independent).
+echo "----------------------------------------------------------------"
+echo "=== Global CLI tests ==="
+
+# Issue #4: -S "" must be rejected up-front, before any device access,
+# to avoid leaving node_description[0] uninitialized on the switch.
+echo -n "  [empty -S]    "
+empty_s_out=$("$REPO_DIR/ibswinfo.sh" -S "" 2>&1)
+empty_s_rc=$?
+if [[ $empty_s_rc -eq 0 ]]; then
+    echo "FAILED (expected non-zero exit, got 0)"
+    global_status=1
+elif [[ "$empty_s_out" != *"description string cannot be empty"* ]]; then
+    echo "FAILED (expected 'description string cannot be empty' in stderr)"
+    echo "  got: [$empty_s_out]"
+    global_status=1
+else
+    echo "OK"
+fi
+
 echo "----------------------------------------------------------------"
 if [[ $global_status -eq 0 ]]; then
     echo "All tests passed successfully on $count dumps!"
