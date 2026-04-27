@@ -720,6 +720,23 @@ done <<< "$_regs"
 #shellcheck disable=SC2001
 psu_idxs=$(sed 's/.*psu\([0-9]\).*/\1/;t;d' <<< "${reg[MSPS]}" | sort -u)
 declare -A ps
+
+# Detect chassis-managed switches: MSPS reports valid psu blocks but every
+# field is 0x00000000 because the switch is sideband-fed from the chassis
+# and has no local PSUs. Without this guard, the bitmask decoder below
+# would label every imaginary PSU as "ERROR", which is misleading on
+# water-cooled / chassis-integrated hardware (e.g. Sequana3). Skip the
+# per-PSU loop and let the output paths emit a single "N/A" line instead.
+chassis_managed=0
+if [[ -n "$psu_idxs" ]]; then
+    psu_nonzero=$(awk '/^psu[0-9]+\[/ && $NF != "0x00000000" {n++}
+                       END {print n+0}' <<< "${reg[MSPS]}")
+    if [[ "$psu_nonzero" -eq 0 ]]; then
+        chassis_managed=1
+        psu_idxs=""
+    fi
+fi
+
 for i in $psu_idxs; do
     # get PSU status bitmasks, a lot of guessing is taking place here
     for j in 0 1; do
@@ -772,6 +789,7 @@ case $out in
                 out_kv "psu$i.serial" "${ps[$i.sn]}"
             done
         }
+        [[ "$chassis_managed" == "1" ]] && out_kv "psu" "N/A (chassis-managed)"
         exit 0
         ;;
 
@@ -783,6 +801,7 @@ case $out in
                 out_kv "psu$i.fan"     "${ps[$i.fs]}"
             done
         }
+        [[ "$chassis_managed" == "1" ]] && out_kv "psu" "N/A (chassis-managed)"
         out_kv "fans" "$fa"
         exit 0
         ;;
@@ -795,6 +814,7 @@ case $out in
                 out_kv "psu$i.power (W)" "${ps[$i.wt]}"
             done
         }
+        [[ "$chassis_managed" == "1" ]] && out_kv "psu.power (W)" "N/A"
         out_kv "cur.temp (C)" "${tp}"
         out_kv "max.temp (C)" "${mt}"
         [[ "$opt_T" == "1" ]] && {
@@ -831,7 +851,9 @@ case $out in
             echo -n ",\"serial\":\"$(json_escape "${ps[$i.sn]}")\"}"
             first=0
         done
-        echo -n "]},\"status\":{\"fans\":\"$(json_escape "$fa")\",\"psus\":["
+        echo -n "]},\"status\":{\"fans\":\"$(json_escape "$fa")\""
+        [[ "$chassis_managed" == "1" ]] && echo -n ",\"chassis_managed\":true"
+        echo -n ",\"psus\":["
         first=1
         for i in $psu_idxs; do
             [[ $first -eq 0 ]] && echo -n ","
@@ -944,6 +966,8 @@ case $out in
             done
             print_line "" $DASH_WIDTH
             print_line "   Total Power Consumption: $total_w W" $DASH_WIDTH
+        elif [[ "$chassis_managed" == "1" ]]; then
+            print_line "   $(status_block INFO)  N/A — chassis-managed (no local PSUs)" $DASH_WIDTH
         else
             print_line "   PSU: data unavailable" $DASH_WIDTH
         fi
@@ -1085,6 +1109,10 @@ sep
         out_kv "     fan status" "${ps[$i.fs]}"
         out_kv "     power (W)"  "${ps[$i.wt]}"
     done
+    sep
+}
+[[ "$chassis_managed" == "1" ]] && {
+    out_kv "PSU" "N/A (chassis-managed)"
     sep
 }
 out_kv "temperature (C)" "${tp}"
