@@ -44,6 +44,12 @@ awk -v pattern="$SEARCH_PATTERN" '
         found=1
         next
     }
+    # Error lines (-E-) are returned verbatim, then we stop. This mirrors
+    # how the real mlxreg_ext behaves when a register is unsupported.
+    found && /^-E-/ {
+        print $0
+        exit
+    }
     found && /^=======/ {
         block++
         if (block == 2) { # We are after the table header
